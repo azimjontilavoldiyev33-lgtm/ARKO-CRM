@@ -5,9 +5,14 @@ import Worker from '@/models/Worker';
 import Order from '@/models/Order';
 import bot from '@/bot';
 
-export async function GET() {
+export async function GET(req: Request) {
   await connectDB();
-  const tasks = await Task.find()
+  const { searchParams } = new URL(req.url);
+  const workerId = searchParams.get('worker');
+
+  const query = workerId ? { worker: workerId } : {};
+
+  const tasks = await Task.find(query)
     .populate('order', 'title')
     .populate('worker', 'fullName')
     .sort({ createdAt: -1 });
@@ -20,16 +25,13 @@ export async function POST(req: Request) {
 
   try {
     const task = await Task.create(body);
-
     const worker = await Worker.findById(body.worker);
     const order = await Order.findById(body.order);
 
     if (worker?.telegramChatId) {
       const deadline = new Date(body.deadline).toLocaleDateString('uz-UZ');
 
-      // Agar buyurtmada rasmlar bo'lsa
       if (order?.images && order.images.length > 0) {
-        // Birinchi rasmni xabar bilan yuborish
         await bot.telegram.sendPhoto(
           worker.telegramChatId,
           order.images[0],
@@ -49,7 +51,6 @@ export async function POST(req: Request) {
           }
         );
 
-        // Qolgan rasmlarni yuborish
         if (order.images.length > 1) {
           const mediaGroup = order.images.slice(1).map((url: string) => ({
             type: 'photo' as const,
@@ -58,7 +59,6 @@ export async function POST(req: Request) {
           await bot.telegram.sendMediaGroup(worker.telegramChatId, mediaGroup);
         }
       } else {
-        // Rasm yo'q — oddiy xabar
         await bot.telegram.sendMessage(
           worker.telegramChatId,
           `📋 *Yangi vazifa!*\n\n` +

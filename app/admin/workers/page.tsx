@@ -135,12 +135,20 @@ export default function WorkersPage() {
                     {new Date(worker.createdAt).toLocaleDateString('uz-UZ')}
                   </td>
                   <td style={{ padding: '16px 24px' }}>
-                    <button
-                      onClick={() => handleDelete(worker._id)}
-                      style={{ background: 'transparent', border: '1px solid #3a1a1a', color: '#f87171', borderRadius: '8px', padding: '6px 14px', fontSize: '12px', cursor: 'pointer' }}
-                    >
-                      O'chirish
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <a
+                        href={`/admin/workers/${worker._id}`}
+                        style={{ background: '#1a2a3a', border: 'none', color: '#60a5fa', borderRadius: '8px', padding: '6px 14px', fontSize: '12px', cursor: 'pointer', textDecoration: 'none' }}
+                      >
+                        Profil →
+                      </a>
+                      <button
+                        onClick={() => handleDelete(worker._id)}
+                        style={{ background: 'transparent', border: '1px solid #3a1a1a', color: '#f87171', borderRadius: '8px', padding: '6px 14px', fontSize: '12px', cursor: 'pointer' }}
+                      >
+                        O'chirish
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
