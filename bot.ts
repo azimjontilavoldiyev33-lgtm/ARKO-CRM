@@ -52,13 +52,26 @@ bot.action(/^start_(.+)$/, async (ctx) => {
       status: 'in_progress',
       startedAt: new Date(),
     });
-    await ctx.editMessageText('✅ Ish boshlandi! Tugatgach tugmani bosing:', {
-      reply_markup: {
-        inline_keyboard: [[
-          { text: '✅ Tugatdim', callback_data: `done_${taskId}` }
-        ]]
-      }
-    });
+
+    // Rasm xabari bo'lsa editMessageCaption, text bo'lsa editMessageText
+    try {
+      await ctx.editMessageCaption('✅ Ish boshlandi! Tugatgach tugmani bosing:', {
+        reply_markup: {
+          inline_keyboard: [[
+            { text: '✅ Tugatdim', callback_data: `done_${taskId}` }
+          ]]
+        }
+      });
+    } catch {
+      await ctx.editMessageText('✅ Ish boshlandi! Tugatgach tugmani bosing:', {
+        reply_markup: {
+          inline_keyboard: [[
+            { text: '✅ Tugatdim', callback_data: `done_${taskId}` }
+          ]]
+        }
+      });
+    }
+
     await ctx.answerCbQuery('Ish boshlandi!');
   } catch (error) {
     console.error('Start action xatosi:', error);
@@ -75,8 +88,22 @@ bot.action(/^done_(.+)$/, async (ctx) => {
       status: 'completed',
       completedAt: new Date(),
     });
-    await ctx.editMessageText('🎉 Barakalla! Ish muvaffaqiyatli tugallandi.');
+
+    try {
+      await ctx.editMessageCaption('🎉 Barakalla! Ish tugallandi. Endi ish rasmini yuboring:');
+    } catch {
+      await ctx.editMessageText('🎉 Barakalla! Ish tugallandi. Endi ish rasmini yuboring:');
+    }
+
     await ctx.answerCbQuery('Barakalla!');
+
+    await ctx.reply('📸 Ish rasmini yuboring (ixtiyoriy):', {
+      reply_markup: {
+        inline_keyboard: [[
+          { text: '⏭ Rasmsiz tugatish', callback_data: `skip_${taskId}` }
+        ]]
+      }
+    });
   } catch (error) {
     console.error('Done action xatosi:', error);
     await ctx.answerCbQuery('Xatolik yuz berdi');
