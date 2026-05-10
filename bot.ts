@@ -123,5 +123,66 @@ bot.command('profile', async (ctx) => {
     await ctx.reply('Xatolik yuz berdi.');
   }
 });
+// Ishni tugatish
+bot.action(/^done_(.+)$/, async (ctx) => {
+  try {
+    await connectDB();
+    const taskId = ctx.match[1];
+    await Task.findByIdAndUpdate(taskId, {
+      status: 'completed',
+      completedAt: new Date(),
+    });
+    await ctx.editMessageText('🎉 Barakalla! Ish tugallandi. Endi ish rasmi yuboring:');
+    await ctx.answerCbQuery('Barakalla!');
+
+    // Rasmni kutish
+    await ctx.reply('📸 Ish rasmini yuboring (ixtiyoriy):', {
+      reply_markup: {
+        inline_keyboard: [[
+          { text: '⏭ Rasmsiz tugatish', callback_data: `skip_${taskId}` }
+        ]]
+      }
+    });
+  } catch (error) {
+    console.error('Done action xatosi:', error);
+    await ctx.answerCbQuery('Xatolik yuz berdi');
+  }
+});
+
+// Rasmni qabul qilish
+bot.on('photo', async (ctx) => {
+  try {
+    await connectDB();
+    const chatId = ctx.chat.id.toString();
+    const worker = await Worker.findOne({ telegramChatId: chatId });
+    if (!worker) return;
+
+    // Eng so'nggi tugallangan vazifani topish
+    const task = await Task.findOne({
+      worker: worker._id,
+      status: 'completed',
+      completionPhoto: { $exists: false },
+    }).sort({ completedAt: -1 });
+
+    if (!task) return;
+
+    const photo = ctx.message.photo;
+    const fileId = photo[photo.length - 1].file_id;
+
+    await Task.findByIdAndUpdate(task._id, {
+      completionPhoto: fileId,
+    });
+
+    await ctx.reply('✅ Rasm saqlandi! Rahmat.');
+  } catch (error) {
+    console.error('Photo xatosi:', error);
+  }
+});
+
+// Rasmsiz tugatish
+bot.action(/^skip_(.+)$/, async (ctx) => {
+  await ctx.editMessageText('✅ Vazifa tugallandi!');
+  await ctx.answerCbQuery();
+});
 
 export default bot;
