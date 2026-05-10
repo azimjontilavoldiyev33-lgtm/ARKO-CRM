@@ -82,5 +82,46 @@ bot.action(/^done_(.+)$/, async (ctx) => {
     await ctx.answerCbQuery('Xatolik yuz berdi');
   }
 });
+// Usta o'z profilini ko'rishi
+bot.command('profile', async (ctx) => {
+  try {
+    await connectDB();
+    const chatId = ctx.chat.id.toString();
+    const worker = await Worker.findOne({ telegramChatId: chatId });
+
+    if (!worker) {
+      await ctx.reply('Siz tizimga ulanmagansiz. /start bosing.');
+      return;
+    }
+
+    const tasks = await Task.find({ worker: worker._id });
+    const completed = tasks.filter(t => t.status === 'completed').length;
+    const inProgress = tasks.filter(t => t.status === 'in_progress').length;
+    const pending = tasks.filter(t => t.status === 'pending').length;
+    const overdue = tasks.filter(t => 
+      new Date(t.deadline) < new Date() && t.status !== 'completed'
+    ).length;
+    const ratedTasks = tasks.filter(t => t.rating);
+    const avgRating = ratedTasks.length > 0
+      ? (ratedTasks.reduce((sum, t) => sum + (t.rating || 0), 0) / ratedTasks.length).toFixed(1)
+      : 'Hali baholanmagan';
+
+    await ctx.reply(
+      `👷 *${worker.fullName}*\n\n` +
+      `📞 Telefon: +${worker.phoneNumber}\n` +
+      `💼 Lavozim: ${worker.position || 'Belgilanmagan'}\n\n` +
+      `📊 *Statistika:*\n` +
+      `✅ Bajarilgan: ${completed} ta\n` +
+      `▶️ Jarayonda: ${inProgress} ta\n` +
+      `⏳ Kutilmoqda: ${pending} ta\n` +
+      `⚠️ Kechikkan: ${overdue} ta\n\n` +
+      `⭐ O'rtacha baho: ${avgRating}`,
+      { parse_mode: 'Markdown' }
+    );
+  } catch (error) {
+    console.error('Profile xatosi:', error);
+    await ctx.reply('Xatolik yuz berdi.');
+  }
+});
 
 export default bot;
