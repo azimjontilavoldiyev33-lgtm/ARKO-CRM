@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 interface Stats {
   workers: { total: number; connected: number };
@@ -18,9 +19,9 @@ interface RecentTask {
 }
 
 const STATUS_LABELS = {
-  pending: { label: 'Kutilmoqda', color: '#60a5fa', bg: '#1a2a3a' },
-  in_progress: { label: 'Jarayonda', color: '#f0c040', bg: '#2a2410' },
-  completed: { label: 'Tugallangan', color: '#4ade80', bg: '#142614' },
+  pending:     { label: 'Kutilmoqda', className: 'bg-[#1a2a3a] text-[#60a5fa]' },
+  in_progress: { label: 'Jarayonda',  className: 'bg-[#2a2410] text-[#f0c040]' },
+  completed:   { label: 'Tugallangan',className: 'bg-[#142614] text-[#4ade80]' },
 };
 
 export default function DashboardPage() {
@@ -37,27 +38,27 @@ export default function DashboardPage() {
         fetch('/api/tasks'),
       ]);
       const workers = await workersRes.json();
-      const orders = await ordersRes.json();
-      const tasks = await tasksRes.json();
+      const orders  = await ordersRes.json();
+      const tasks   = await tasksRes.json();
+      const now     = new Date();
 
-      const now = new Date();
       setStats({
         workers: {
-          total: workers.length,
+          total:     workers.length,
           connected: workers.filter((w: any) => w.telegramChatId).length,
         },
         orders: {
-          total: orders.length,
-          new: orders.filter((o: any) => o.status === 'new').length,
+          total:       orders.length,
+          new:         orders.filter((o: any) => o.status === 'new').length,
           in_progress: orders.filter((o: any) => o.status === 'in_progress').length,
-          completed: orders.filter((o: any) => o.status === 'completed').length,
+          completed:   orders.filter((o: any) => o.status === 'completed').length,
         },
         tasks: {
-          total: tasks.length,
-          pending: tasks.filter((t: any) => t.status === 'pending').length,
+          total:       tasks.length,
+          pending:     tasks.filter((t: any) => t.status === 'pending').length,
           in_progress: tasks.filter((t: any) => t.status === 'in_progress').length,
-          completed: tasks.filter((t: any) => t.status === 'completed').length,
-          overdue: tasks.filter((t: any) => new Date(t.deadline) < now && t.status !== 'completed').length,
+          completed:   tasks.filter((t: any) => t.status === 'completed').length,
+          overdue:     tasks.filter((t: any) => new Date(t.deadline) < now && t.status !== 'completed').length,
         },
       });
       setRecentTasks(tasks.slice(0, 8));
@@ -69,198 +70,278 @@ export default function DashboardPage() {
     }
   };
 
-useEffect(() => {
-  fetchData();
-
-  const eventSource = new EventSource('/api/events');
-  eventSource.onmessage = () => {
-    fetchData(); // fetchAll emas, fetchData!
-  };
-  return () => eventSource.close();
-}, []);
+  useEffect(() => {
+    fetchData();
+    const es = new EventSource('/api/events');
+    es.onmessage = () => fetchData();
+    return () => es.close();
+  }, []);
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', background: '#0f1117', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', fontFamily: "'DM Sans', sans-serif" }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '40px', marginBottom: '16px' }}>⚙️</div>
+    <div className="min-h-screen bg-[#0f1117] flex items-center justify-center text-[#555] font-sans">
+      <div className="text-center">
+        <div className="text-5xl mb-4">⚙️</div>
         <p>Yuklanmoqda...</p>
       </div>
     </div>
   );
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0f1117', color: '#e8e8e8', fontFamily: "'DM Sans', sans-serif", padding: '32px' }}>
-      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+    <div className="min-h-screen bg-[#0f1117] text-[#e8e8e8] font-sans p-4 sm:p-6 lg:p-8">
+      <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@700;800&display=swap"
+        rel="stylesheet"
+      />
 
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '40px' }}>
+      {/* ── Header ─────────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8 sm:mb-10">
         <div>
-          <p style={{ color: '#555', fontSize: '13px', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '6px' }}>Mebel CRM</p>
-          <h1 style={{ fontFamily: "'Syne', sans-serif", fontSize: '36px', fontWeight: 800, margin: 0, background: 'linear-gradient(135deg, #fff 0%, #888 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+          <p className="text-[#555] text-[11px] tracking-[2px] uppercase mb-1.5">Mebel CRM</p>
+          <h1
+            className="text-3xl sm:text-4xl font-extrabold m-0 bg-gradient-to-br from-white to-[#888] bg-clip-text text-transparent"
+            style={{ fontFamily: "'Syne', sans-serif" }}
+          >
             Dashboard
           </h1>
         </div>
-        <div style={{ textAlign: 'right' }}>
+        <div className="flex sm:flex-col sm:items-end gap-3 sm:gap-0">
           <button
             onClick={fetchData}
-            style={{ background: '#1a1d27', border: '1px solid #2a2d3a', color: '#888', borderRadius: '10px', padding: '10px 20px', fontSize: '13px', cursor: 'pointer', marginBottom: '8px' }}
+            className="bg-[#1a1d27] border border-[#2a2d3a] text-[#888] rounded-xl px-4 py-2.5 text-sm cursor-pointer hover:text-[#e8e8e8] hover:border-[#3a3d4a] transition-all sm:mb-2"
           >
             🔄 Yangilash
           </button>
-          <p style={{ margin: 0, color: '#444', fontSize: '12px' }}>
+          <p className="text-[#444] text-xs m-0 self-end sm:self-auto">
             {lastUpdated.toLocaleTimeString('uz-UZ')} da yangilandi
           </p>
         </div>
       </div>
 
-      {/* Nav Links */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '32px' }}>
+      {/* ── Quick Nav ──────────────────────────────────────── */}
+      <div className="flex flex-wrap gap-2 sm:gap-3 mb-7 sm:mb-8">
         {[
-          { label: '👷 Ustalar', href: '/admin/workers' },
+          { label: '👷 Ustalar',     href: '/admin/workers' },
           { label: '📦 Buyurtmalar', href: '/admin/orders' },
-          { label: '📋 Vazifalar', href: '/admin/tasks' },
+          { label: '📋 Vazifalar',   href: '/admin/tasks' },
         ].map((link) => (
-          <a key={link.href} href={link.href} style={{ background: '#1a1d27', border: '1px solid #2a2d3a', color: '#888', borderRadius: '10px', padding: '10px 20px', fontSize: '13px', textDecoration: 'none', transition: 'all 0.2s' }}
-            onMouseEnter={e => { (e.target as HTMLElement).style.color = '#e8e8e8'; (e.target as HTMLElement).style.borderColor = '#3a3d4a'; }}
-            onMouseLeave={e => { (e.target as HTMLElement).style.color = '#888'; (e.target as HTMLElement).style.borderColor = '#2a2d3a'; }}
+          <Link
+            key={link.href}
+            href={link.href}
+            className="bg-[#1a1d27] border border-[#2a2d3a] text-[#888] rounded-xl px-4 py-2.5 text-sm no-underline hover:text-[#e8e8e8] hover:border-[#3a3d4a] transition-all"
           >
             {link.label}
-          </a>
+          </Link>
         ))}
       </div>
 
       {stats && (
         <>
-          {/* Overdue Alert */}
+          {/* ── Overdue Alert ─────────────────────────────── */}
           {stats.tasks.overdue > 0 && (
-            <div style={{ background: '#2a1414', border: '1px solid #4a1a1a', borderRadius: '14px', padding: '16px 24px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '24px' }}>⚠️</span>
-              <div>
-                <p style={{ margin: '0 0 2px', color: '#f87171', fontWeight: 600, fontSize: '15px' }}>
+            <div className="bg-[#2a1414] border border-[#4a1a1a] rounded-2xl p-4 sm:p-5 mb-6 flex flex-col sm:flex-row sm:items-center gap-3">
+              <span className="text-2xl shrink-0">⚠️</span>
+              <div className="flex-1 min-w-0">
+                <p className="m-0 mb-0.5 text-[#f87171] font-semibold text-sm sm:text-base">
                   {stats.tasks.overdue} ta vazifa kechikmoqda!
                 </p>
-                <p style={{ margin: 0, color: '#884444', fontSize: '13px' }}>
+                <p className="m-0 text-[#884444] text-xs sm:text-sm">
                   Muddati o'tgan vazifalarni tekshiring
                 </p>
               </div>
-              <a href="/admin/tasks" style={{ marginLeft: 'auto', background: '#f87171', color: '#fff', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', textDecoration: 'none', fontWeight: 600 }}>
+              <Link
+                href="/admin/tasks"
+                className="self-start sm:self-auto bg-[#f87171] text-white rounded-lg px-4 py-2 text-sm no-underline font-semibold whitespace-nowrap hover:bg-[#f85050] transition-colors"
+              >
                 Ko'rish →
-              </a>
+              </Link>
             </div>
           )}
 
-          {/* Main Stats */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '24px' }}>
+          {/* ── Stat Cards ────────────────────────────────── */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
             {/* Workers */}
-            <div style={{ background: '#1a1d27', borderRadius: '16px', padding: '24px', border: '1px solid #2a2d3a' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                <p style={{ margin: 0, color: '#555', fontSize: '12px', letterSpacing: '1.5px', textTransform: 'uppercase' }}>Ustalar</p>
-                <span style={{ fontSize: '24px' }}>👷</span>
+            <div className="bg-[#1a1d27] rounded-2xl p-5 sm:p-6 border border-[#2a2d3a]">
+              <div className="flex justify-between items-start mb-4">
+                <p className="m-0 text-[#555] text-[11px] tracking-[1.5px] uppercase">Ustalar</p>
+                <span className="text-2xl">👷</span>
               </div>
-              <p style={{ fontFamily: "'Syne', sans-serif", fontSize: '40px', fontWeight: 800, margin: '0 0 12px', color: '#e8e8e8' }}>{stats.workers.total}</p>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <span style={{ background: '#142614', color: '#4ade80', borderRadius: '6px', padding: '4px 10px', fontSize: '12px' }}>✓ {stats.workers.connected} ulangan</span>
-                <span style={{ background: '#261414', color: '#f87171', borderRadius: '6px', padding: '4px 10px', fontSize: '12px' }}>✗ {stats.workers.total - stats.workers.connected} ulanmagan</span>
+              <p
+                className="text-4xl sm:text-5xl font-extrabold m-0 mb-3 text-[#e8e8e8]"
+                style={{ fontFamily: "'Syne', sans-serif" }}
+              >
+                {stats.workers.total}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <span className="bg-[#142614] text-[#4ade80] rounded-md px-2.5 py-1 text-xs">
+                  ✓ {stats.workers.connected} ulangan
+                </span>
+                <span className="bg-[#261414] text-[#f87171] rounded-md px-2.5 py-1 text-xs">
+                  ✗ {stats.workers.total - stats.workers.connected} ulanmagan
+                </span>
               </div>
             </div>
 
             {/* Orders */}
-            <div style={{ background: '#1a1d27', borderRadius: '16px', padding: '24px', border: '1px solid #2a2d3a' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                <p style={{ margin: 0, color: '#555', fontSize: '12px', letterSpacing: '1.5px', textTransform: 'uppercase' }}>Buyurtmalar</p>
-                <span style={{ fontSize: '24px' }}>📦</span>
+            <div className="bg-[#1a1d27] rounded-2xl p-5 sm:p-6 border border-[#2a2d3a]">
+              <div className="flex justify-between items-start mb-4">
+                <p className="m-0 text-[#555] text-[11px] tracking-[1.5px] uppercase">Buyurtmalar</p>
+                <span className="text-2xl">📦</span>
               </div>
-              <p style={{ fontFamily: "'Syne', sans-serif", fontSize: '40px', fontWeight: 800, margin: '0 0 12px', color: '#e8e8e8' }}>{stats.orders.total}</p>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                <span style={{ background: '#1a2a3a', color: '#60a5fa', borderRadius: '6px', padding: '4px 10px', fontSize: '12px' }}>{stats.orders.new} yangi</span>
-                <span style={{ background: '#2a2410', color: '#f0c040', borderRadius: '6px', padding: '4px 10px', fontSize: '12px' }}>{stats.orders.in_progress} jarayonda</span>
-                <span style={{ background: '#142614', color: '#4ade80', borderRadius: '6px', padding: '4px 10px', fontSize: '12px' }}>{stats.orders.completed} tugagan</span>
+              <p
+                className="text-4xl sm:text-5xl font-extrabold m-0 mb-3 text-[#e8e8e8]"
+                style={{ fontFamily: "'Syne', sans-serif" }}
+              >
+                {stats.orders.total}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <span className="bg-[#1a2a3a] text-[#60a5fa] rounded-md px-2.5 py-1 text-xs">{stats.orders.new} yangi</span>
+                <span className="bg-[#2a2410] text-[#f0c040] rounded-md px-2.5 py-1 text-xs">{stats.orders.in_progress} jarayonda</span>
+                <span className="bg-[#142614] text-[#4ade80] rounded-md px-2.5 py-1 text-xs">{stats.orders.completed} tugagan</span>
               </div>
             </div>
 
             {/* Tasks */}
-            <div style={{ background: '#1a1d27', borderRadius: '16px', padding: '24px', border: '1px solid #2a2d3a' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                <p style={{ margin: 0, color: '#555', fontSize: '12px', letterSpacing: '1.5px', textTransform: 'uppercase' }}>Vazifalar</p>
-                <span style={{ fontSize: '24px' }}>📋</span>
+            <div className="bg-[#1a1d27] rounded-2xl p-5 sm:p-6 border border-[#2a2d3a]">
+              <div className="flex justify-between items-start mb-4">
+                <p className="m-0 text-[#555] text-[11px] tracking-[1.5px] uppercase">Vazifalar</p>
+                <span className="text-2xl">📋</span>
               </div>
-              <p style={{ fontFamily: "'Syne', sans-serif", fontSize: '40px', fontWeight: 800, margin: '0 0 12px', color: '#e8e8e8' }}>{stats.tasks.total}</p>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                <span style={{ background: '#1a2a3a', color: '#60a5fa', borderRadius: '6px', padding: '4px 10px', fontSize: '12px' }}>{stats.tasks.pending} kutilmoqda</span>
-                <span style={{ background: '#2a2410', color: '#f0c040', borderRadius: '6px', padding: '4px 10px', fontSize: '12px' }}>{stats.tasks.in_progress} jarayonda</span>
-                <span style={{ background: '#142614', color: '#4ade80', borderRadius: '6px', padding: '4px 10px', fontSize: '12px' }}>{stats.tasks.completed} tugagan</span>
+              <p
+                className="text-4xl sm:text-5xl font-extrabold m-0 mb-3 text-[#e8e8e8]"
+                style={{ fontFamily: "'Syne', sans-serif" }}
+              >
+                {stats.tasks.total}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <span className="bg-[#1a2a3a] text-[#60a5fa] rounded-md px-2.5 py-1 text-xs">{stats.tasks.pending} kutilmoqda</span>
+                <span className="bg-[#2a2410] text-[#f0c040] rounded-md px-2.5 py-1 text-xs">{stats.tasks.in_progress} jarayonda</span>
+                <span className="bg-[#142614] text-[#4ade80] rounded-md px-2.5 py-1 text-xs">{stats.tasks.completed} tugagan</span>
               </div>
             </div>
           </div>
 
-          {/* Progress bars */}
-          <div style={{ background: '#1a1d27', borderRadius: '16px', padding: '24px', border: '1px solid #2a2d3a', marginBottom: '24px' }}>
-            <p style={{ margin: '0 0 20px', fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '16px' }}>Umumiy progress</p>
-            {[
-              { label: 'Buyurtmalar bajarilishi', value: stats.orders.completed, total: stats.orders.total, color: '#4ade80' },
-              { label: 'Vazifalar bajarilishi', value: stats.tasks.completed, total: stats.tasks.total, color: '#60a5fa' },
-              { label: 'Ustalar ulanishi', value: stats.workers.connected, total: stats.workers.total, color: '#f0c040' },
-            ].map((item, i) => {
-              const percent = item.total > 0 ? Math.round((item.value / item.total) * 100) : 0;
-              return (
-                <div key={i} style={{ marginBottom: i < 2 ? '16px' : 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '13px', color: '#888' }}>{item.label}</span>
-                    <span style={{ fontSize: '13px', color: item.color, fontWeight: 600 }}>{percent}%</span>
+          {/* ── Progress Bars ─────────────────────────────── */}
+          <div className="bg-[#1a1d27] rounded-2xl p-5 sm:p-6 border border-[#2a2d3a] mb-6">
+            <p
+              className="m-0 mb-5 font-bold text-base sm:text-lg"
+              style={{ fontFamily: "'Syne', sans-serif" }}
+            >
+              Umumiy progress
+            </p>
+            <div className="flex flex-col gap-4">
+              {[
+                { label: 'Buyurtmalar bajarilishi', value: stats.orders.completed, total: stats.orders.total, color: 'bg-[#4ade80]', textColor: 'text-[#4ade80]' },
+                { label: 'Vazifalar bajarilishi',   value: stats.tasks.completed,  total: stats.tasks.total,  color: 'bg-[#60a5fa]', textColor: 'text-[#60a5fa]' },
+                { label: 'Ustalar ulanishi',         value: stats.workers.connected,total: stats.workers.total,color: 'bg-[#f0c040]', textColor: 'text-[#f0c040]' },
+              ].map((item, i) => {
+                const percent = item.total > 0 ? Math.round((item.value / item.total) * 100) : 0;
+                return (
+                  <div key={i}>
+                    <div className="flex justify-between mb-2">
+                      <span className="text-[#888] text-sm">{item.label}</span>
+                      <span className={`text-sm font-semibold ${item.textColor}`}>{percent}%</span>
+                    </div>
+                    <div className="bg-[#14161f] rounded h-1.5 overflow-hidden">
+                      <div
+                        className={`h-full rounded transition-all duration-500 ${item.color}`}
+                        style={{ width: `${percent}%` }}
+                      />
+                    </div>
                   </div>
-                  <div style={{ background: '#14161f', borderRadius: '4px', height: '6px', overflow: 'hidden' }}>
-                    <div style={{ width: `${percent}%`, height: '100%', background: item.color, borderRadius: '4px', transition: 'width 0.5s ease' }} />
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </>
       )}
 
-      {/* Recent Tasks */}
-      <div style={{ background: '#1a1d27', borderRadius: '16px', border: '1px solid #2a2d3a', overflow: 'hidden' }}>
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid #2a2d3a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <p style={{ margin: 0, fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '16px' }}>So'nggi vazifalar</p>
-          <a href="/admin/tasks" style={{ color: '#f0c040', fontSize: '13px', textDecoration: 'none' }}>Barchasi →</a>
+      {/* ── Recent Tasks ───────────────────────────────────── */}
+      <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] overflow-hidden">
+        <div className="flex justify-between items-center px-5 sm:px-6 py-4 sm:py-5 border-b border-[#2a2d3a]">
+          <p
+            className="m-0 font-bold text-base"
+            style={{ fontFamily: "'Syne', sans-serif" }}
+          >
+            So'nggi vazifalar
+          </p>
+          <Link href="/admin/tasks" className="text-[#f0c040] text-sm no-underline hover:opacity-80 transition-opacity">
+            Barchasi →
+          </Link>
         </div>
+
         {recentTasks.length === 0 ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#555' }}>Hali vazifa yo'q</div>
+          <div className="p-10 text-center text-[#555]">Hali vazifa yo'q</div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: '#14161f' }}>
-                {['Vazifa', 'Buyurtma', 'Usta', 'Muddat', 'Status'].map((h, i) => (
-                  <th key={i} style={{ padding: '12px 24px', textAlign: 'left', color: '#555', fontSize: '12px', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 500 }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            {/* ── Desktop table (md+) ── */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-[#14161f]">
+                    {['Vazifa', 'Buyurtma', 'Usta', 'Muddat', 'Status'].map((h, i) => (
+                      <th
+                        key={i}
+                        className="px-6 py-3 text-left text-[#555] text-xs tracking-widest uppercase font-medium"
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentTasks.map((task) => {
+                    const status   = STATUS_LABELS[task.status];
+                    const deadline = new Date(task.deadline);
+                    const isOverdue = deadline < new Date() && task.status !== 'completed';
+                    return (
+                      <tr
+                        key={task._id}
+                        className="border-t border-[#2a2d3a] hover:bg-[#1f2235] transition-colors"
+                      >
+                        <td className="px-6 py-3.5 font-medium text-sm">{task.title}</td>
+                        <td className="px-6 py-3.5 text-[#666] text-sm">{task.order?.title}</td>
+                        <td className="px-6 py-3.5 text-[#666] text-sm">{task.worker?.fullName}</td>
+                        <td className={`px-6 py-3.5 text-sm ${isOverdue ? 'text-[#f87171]' : 'text-[#666]'}`}>
+                          {isOverdue ? '⚠️ ' : ''}{deadline.toLocaleDateString('uz-UZ')}
+                        </td>
+                        <td className="px-6 py-3.5">
+                          <span className={`rounded-md px-2.5 py-1 text-xs font-semibold ${status.className}`}>
+                            {status.label}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* ── Mobile cards (< md) ── */}
+            <div className="md:hidden divide-y divide-[#2a2d3a]">
               {recentTasks.map((task) => {
-                const status = STATUS_LABELS[task.status];
-                const deadline = new Date(task.deadline);
+                const status    = STATUS_LABELS[task.status];
+                const deadline  = new Date(task.deadline);
                 const isOverdue = deadline < new Date() && task.status !== 'completed';
                 return (
-                  <tr key={task._id} style={{ borderTop: '1px solid #2a2d3a' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = '#1f2235')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                  >
-                    <td style={{ padding: '14px 24px', fontWeight: 500, fontSize: '14px' }}>{task.title}</td>
-                    <td style={{ padding: '14px 24px', color: '#666', fontSize: '13px' }}>{task.order?.title}</td>
-                    <td style={{ padding: '14px 24px', color: '#666', fontSize: '13px' }}>{task.worker?.fullName}</td>
-                    <td style={{ padding: '14px 24px', fontSize: '13px', color: isOverdue ? '#f87171' : '#666' }}>
-                      {isOverdue ? '⚠️ ' : ''}{deadline.toLocaleDateString('uz-UZ')}
-                    </td>
-                    <td style={{ padding: '14px 24px' }}>
-                      <span style={{ background: status.bg, color: status.color, borderRadius: '6px', padding: '4px 10px', fontSize: '12px', fontWeight: 600 }}>
+                  <div key={task._id} className="px-4 py-3.5 flex flex-col gap-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="m-0 font-medium text-sm leading-snug">{task.title}</p>
+                      <span className={`shrink-0 rounded-md px-2.5 py-1 text-xs font-semibold ${status.className}`}>
                         {status.label}
                       </span>
-                    </td>
-                  </tr>
+                    </div>
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-[#666]">
+                      <span>📦 {task.order?.title}</span>
+                      <span>👷 {task.worker?.fullName}</span>
+                      <span className={isOverdue ? 'text-[#f87171]' : ''}>
+                        🗓 {isOverdue ? '⚠️ ' : ''}{deadline.toLocaleDateString('uz-UZ')}
+                      </span>
+                    </div>
+                  </div>
                 );
               })}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </div>
     </div>

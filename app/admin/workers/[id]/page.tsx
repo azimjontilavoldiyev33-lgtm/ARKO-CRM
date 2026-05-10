@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface Task {
   _id: string;
   title: string;
@@ -24,23 +25,217 @@ interface Worker {
   createdAt: string;
 }
 
-const STATUS_LABELS = {
-  pending: { label: 'Kutilmoqda', color: '#60a5fa', bg: '#1a2a3a' },
-  in_progress: { label: 'Jarayonda', color: '#f0c040', bg: '#2a2410' },
-  completed: { label: 'Tugallangan', color: '#4ade80', bg: '#142614' },
-};
+// ─── Constants ────────────────────────────────────────────────────────────────
+const STATUS_META = {
+  pending:     { label: 'Kutilmoqda', badge: 'bg-blue-950 text-blue-400',   dot: 'bg-blue-400'   },
+  in_progress: { label: 'Jarayonda',  badge: 'bg-amber-950 text-amber-400', dot: 'bg-amber-400'  },
+  completed:   { label: 'Tugallandi', badge: 'bg-emerald-950 text-emerald-400', dot: 'bg-emerald-400' },
+} as const;
 
+const fmtDate = (d?: string) =>
+  d ? new Date(d).toLocaleDateString('uz-UZ') : '—';
+
+const isOverdue = (task: Task) =>
+  new Date(task.deadline) < new Date() && task.status !== 'completed';
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function Skeleton() {
+  return (
+    <div className="min-h-screen bg-[#0f1117] flex items-center justify-center">
+      <div className="space-y-2 text-center">
+        <div className="w-12 h-12 rounded-full border-2 border-[#f0c040] border-t-transparent animate-spin mx-auto" />
+        <p className="text-[#555] text-sm font-medium" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+          Yuklanmoqda...
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function RatingModal({
+  onClose,
+  onSave,
+}: {
+  onClose: () => void;
+  onSave: (r: number) => void;
+}) {
+  const [rating, setRating] = useState(5);
+  const [hovered, setHovered] = useState(0);
+  const display = hovered || rating;
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/80 z-50 flex items-end sm:items-center justify-center p-4"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="bg-[#1a1d27] rounded-2xl p-7 w-full max-w-sm border border-[#2a2d3a] text-center animate-slide-up">
+        <div className="w-8 h-1 bg-[#2a2d3a] rounded-full mx-auto mb-5 sm:hidden" />
+        <h2
+          className="text-lg font-bold text-white mb-1"
+          style={{ fontFamily: "'Syne', sans-serif" }}
+        >
+          Ishni baholang
+        </h2>
+        <p className="text-[#555] text-xs mb-6">Usta bajargan ishning sifatini belgilang</p>
+
+        <div className="flex justify-center gap-2 mb-6">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <button
+              key={star}
+              onClick={() => setRating(star)}
+              onMouseEnter={() => setHovered(star)}
+              onMouseLeave={() => setHovered(0)}
+              className="text-3xl transition-all duration-100 hover:scale-110"
+              style={{ opacity: star <= display ? 1 : 0.2 }}
+            >
+              ⭐
+            </button>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={onClose}
+            className="py-3 rounded-xl border border-[#2a2d3a] text-[#888] text-sm font-medium hover:bg-[#2a2d3a] transition"
+          >
+            Bekor
+          </button>
+          <button
+            onClick={() => onSave(rating)}
+            className="py-3 rounded-xl bg-[#f0c040] text-[#0f1117] text-sm font-bold hover:bg-[#d4a832] transition"
+            style={{ fontFamily: "'Syne', sans-serif" }}
+          >
+            Saqlash
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PhotoModal({ task, onClose }: { task: Task; onClose: () => void }) {
+  const botToken = process.env.NEXT_PUBLIC_BOT_TOKEN;
+  return (
+    <div
+      className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-[#1a1d27] rounded-2xl p-5 w-full max-w-lg border border-[#2a2d3a]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3
+            className="text-base font-bold text-white"
+            style={{ fontFamily: "'Syne', sans-serif" }}
+          >
+            {task.title}
+          </h3>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg bg-[#2a2d3a] text-[#888] flex items-center justify-center hover:text-white transition"
+          >
+            ✕
+          </button>
+        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={`https://api.telegram.org/file/bot${botToken}/${task.completionPhoto}`}
+          alt="Ish rasmi"
+          className="w-full rounded-xl object-cover"
+        />
+      </div>
+    </div>
+  );
+}
+
+// Mobile: task card
+function TaskCard({
+  task,
+  onRate,
+  onPhoto,
+}: {
+  task: Task;
+  onRate: () => void;
+  onPhoto: () => void;
+}) {
+  const sm = STATUS_META[task.status];
+  const overdue = isOverdue(task);
+
+  return (
+    <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] p-4 space-y-3">
+      {/* Title + status */}
+      <div className="flex items-start gap-3">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-white leading-snug truncate">{task.title}</p>
+          <p className="text-xs text-[#555] mt-0.5 truncate">{task.order?.title}</p>
+        </div>
+        <span className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold ${sm.badge}`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${sm.dot}`} />
+          {sm.label}
+        </span>
+      </div>
+
+      {/* Meta grid */}
+      <div className="grid grid-cols-3 gap-2 text-center">
+        {[
+          { label: 'Muddat', val: fmtDate(task.deadline), danger: overdue },
+          { label: 'Boshlandi', val: fmtDate(task.startedAt) },
+          { label: 'Tugadi', val: fmtDate(task.completedAt) },
+        ].map(({ label, val, danger }) => (
+          <div key={label} className="bg-[#14161f] rounded-xl py-2 px-1">
+            <p className="text-[10px] text-[#555] uppercase tracking-wide mb-0.5">{label}</p>
+            <p className={`text-xs font-medium ${danger ? 'text-red-400' : 'text-[#aaa]'}`}>
+              {danger ? '⚠ ' : ''}{val}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Rating + photo */}
+      <div className="flex items-center gap-2">
+        {task.rating ? (
+          <span className="text-sm text-amber-400">{'⭐'.repeat(task.rating)}</span>
+        ) : task.status === 'completed' ? (
+          <button
+            onClick={onRate}
+            className="text-xs px-3 py-1.5 rounded-lg bg-amber-950 border border-amber-800/40 text-amber-400 font-semibold hover:bg-amber-900 transition"
+          >
+            Baholash
+          </button>
+        ) : (
+          <span className="text-xs text-[#444]">Baho yo'q</span>
+        )}
+        {task.completionPhoto && (
+          <button
+            onClick={onPhoto}
+            className="ml-auto text-xs px-3 py-1.5 rounded-lg bg-blue-950 border border-blue-800/40 text-blue-400 font-semibold hover:bg-blue-900 transition"
+          >
+            📸 Ko'rish
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function WorkerProfilePage() {
   const { id } = useParams();
   const [worker, setWorker] = useState<Worker | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [ratingTask, setRatingTask] = useState<string | null>(null);
-  const [rating, setRating] = useState(5);
   const [photoTask, setPhotoTask] = useState<Task | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  };
 
   const fetchData = async () => {
-    setLoading(true);
     const [workerRes, tasksRes] = await Promise.all([
       fetch(`/api/workers/${id}`),
       fetch(`/api/tasks?worker=${id}`),
@@ -52,211 +247,285 @@ export default function WorkerProfilePage() {
 
   useEffect(() => {
     fetchData();
-    const eventSource = new EventSource('/api/events');
-    eventSource.onmessage = () => { fetchData(); };
-    return () => eventSource.close();
+    const es = new EventSource('/api/events');
+    es.onmessage = () => fetchData();
+    return () => es.close();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleRating = async (taskId: string) => {
+  const handleRating = async (taskId: string, rating: number) => {
     await fetch(`/api/tasks/${taskId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ rating }),
     });
     setRatingTask(null);
+    showToast('Baho saqlandi ✓');
     fetchData();
   };
 
-  if (loading) return (
-    <div style={{ minHeight: '100vh', background: '#0f1117', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', fontFamily: "'DM Sans', sans-serif" }}>
-      Yuklanmoqda...
-    </div>
-  );
+  if (loading) return <Skeleton />;
 
   if (!worker) return (
-    <div style={{ minHeight: '100vh', background: '#0f1117', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', fontFamily: "'DM Sans', sans-serif" }}>
+    <div className="min-h-screen bg-[#0f1117] flex items-center justify-center text-[#555]"
+      style={{ fontFamily: "'DM Sans', sans-serif" }}>
       Usta topilmadi
     </div>
   );
 
-  const completedTasks = tasks.filter(t => t.status === 'completed');
+  // ── Derived stats ──
+  const completedTasks  = tasks.filter(t => t.status === 'completed');
   const inProgressTasks = tasks.filter(t => t.status === 'in_progress');
-  const overdueTasks = tasks.filter(t => new Date(t.deadline) < new Date() && t.status !== 'completed');
-  const ratedTasks = completedTasks.filter(t => t.rating);
-  const avgRating = ratedTasks.length > 0
-    ? (ratedTasks.reduce((sum, t) => sum + (t.rating || 0), 0) / ratedTasks.length).toFixed(1)
+  const overdueTasks    = tasks.filter(t => isOverdue(t));
+  const ratedTasks      = completedTasks.filter(t => t.rating);
+  const avgRating       = ratedTasks.length > 0
+    ? (ratedTasks.reduce((s, t) => s + (t.rating ?? 0), 0) / ratedTasks.length).toFixed(1)
     : '—';
 
-  const botToken = process.env.NEXT_PUBLIC_BOT_TOKEN;
+  const initials = worker.fullName.split(' ').map(n => n[0]).slice(0, 2).join('');
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0f1117', color: '#e8e8e8', fontFamily: "'DM Sans', sans-serif", padding: '32px' }}>
-      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap');
+        @keyframes slide-up   { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        @keyframes fade-in    { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-slide-up     { animation: slide-up 0.25s ease both; }
+        .animate-fade-in      { animation: fade-in 0.25s ease both; }
+      `}</style>
 
-      {/* Back */}
-      <a href="/admin/workers" style={{ color: '#555', fontSize: '13px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px', marginBottom: '24px' }}>
-        ← Ustalarga qaytish
-      </a>
+      {/* Modals */}
+      {ratingTask && (
+        <RatingModal
+          onClose={() => setRatingTask(null)}
+          onSave={(r) => handleRating(ratingTask, r)}
+        />
+      )}
+      {photoTask && (
+        <PhotoModal task={photoTask} onClose={() => setPhotoTask(null)} />
+      )}
 
-      {/* Worker Header */}
-      <div style={{ background: '#1a1d27', borderRadius: '20px', padding: '28px', border: '1px solid #2a2d3a', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '24px' }}>
-        <div style={{ width: '72px', height: '72px', borderRadius: '16px', background: '#f0c040', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Syne', sans-serif", fontSize: '28px', fontWeight: 800, color: '#0f1117', flexShrink: 0 }}>
-          {worker.fullName[0]}
+      {/* Toast */}
+      {toast && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-[#1a1d27] border border-[#2a2d3a] text-white text-sm font-medium px-5 py-2.5 rounded-full shadow-xl animate-fade-in whitespace-nowrap pointer-events-none">
+          {toast}
         </div>
-        <div style={{ flex: 1 }}>
-          <h1 style={{ fontFamily: "'Syne', sans-serif", fontSize: '24px', fontWeight: 800, margin: '0 0 6px' }}>{worker.fullName}</h1>
-          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-            <span style={{ color: '#666', fontSize: '13px' }}>📞 +{worker.phoneNumber}</span>
-            {worker.position && <span style={{ color: '#666', fontSize: '13px' }}>💼 {worker.position}</span>}
-            <span style={{ color: '#666', fontSize: '13px' }}>📅 {new Date(worker.createdAt).toLocaleDateString('uz-UZ')} dan</span>
-          </div>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          {worker.telegramChatId ? (
-            <span style={{ background: '#142614', color: '#4ade80', borderRadius: '8px', padding: '6px 14px', fontSize: '12px', fontWeight: 600 }}>✓ Telegram ulangan</span>
-          ) : (
-            <span style={{ background: '#261414', color: '#f87171', borderRadius: '8px', padding: '6px 14px', fontSize: '12px', fontWeight: 600 }}>✗ Telegram ulanmagan</span>
+      )}
+
+      <div
+        className="min-h-screen bg-[#0f1117] text-[#e8e8e8]"
+        style={{ fontFamily: "'DM Sans', sans-serif" }}
+      >
+        {/* ── Topbar (mobile sticky) ── */}
+        <div className="sticky top-0 z-30 bg-[#0f1117]/90 backdrop-blur border-b border-[#1e2130] px-4 py-3 flex items-center gap-3 sm:hidden">
+          <a
+            href="/admin/workers"
+            className="w-9 h-9 rounded-xl bg-[#1a1d27] flex items-center justify-center text-[#888] hover:text-white transition border border-[#2a2d3a]"
+          >
+            ←
+          </a>
+          <span className="flex-1 font-semibold text-white text-sm truncate">{worker.fullName}</span>
+          {worker.telegramChatId && (
+            <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-950 text-emerald-400 font-semibold border border-emerald-800/30">
+              ✓ TG
+            </span>
           )}
         </div>
-      </div>
 
-      {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '24px' }}>
-        {[
-          { label: 'Jami vazifa', value: tasks.length, color: '#e8e8e8' },
-          { label: 'Bajarilgan', value: completedTasks.length, color: '#4ade80' },
-          { label: 'Jarayonda', value: inProgressTasks.length, color: '#f0c040' },
-          { label: 'Kechikkan', value: overdueTasks.length, color: '#f87171' },
-          { label: 'O\'rtacha baho', value: avgRating, color: '#f0c040' },
-        ].map((stat, i) => (
-          <div key={i} style={{ background: '#1a1d27', borderRadius: '14px', padding: '20px', border: '1px solid #2a2d3a', textAlign: 'center' }}>
-            <p style={{ color: '#555', fontSize: '11px', letterSpacing: '1.5px', textTransform: 'uppercase', margin: '0 0 8px' }}>{stat.label}</p>
-            <p style={{ fontFamily: "'Syne', sans-serif", fontSize: '28px', fontWeight: 800, color: stat.color, margin: 0 }}>
-              {i === 4 ? `⭐ ${stat.value}` : stat.value}
-            </p>
-          </div>
-        ))}
-      </div>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-5">
 
-      {/* Tasks */}
-      <div style={{ background: '#1a1d27', borderRadius: '16px', border: '1px solid #2a2d3a', overflow: 'hidden' }}>
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid #2a2d3a' }}>
-          <p style={{ margin: 0, fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '16px' }}>Barcha vazifalar</p>
-        </div>
+          {/* Back link (desktop) */}
+          <a
+            href="/admin/workers"
+            className="hidden sm:inline-flex items-center gap-2 text-[#555] text-sm hover:text-[#888] transition"
+          >
+            ← Ustalarga qaytish
+          </a>
 
-        {tasks.length === 0 ? (
-          <div style={{ padding: '60px', textAlign: 'center', color: '#555' }}>
-            <p style={{ fontSize: '40px', margin: '0 0 12px' }}>📋</p>
-            <p>Hali vazifa yo'q</p>
-          </div>
-        ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: '#14161f' }}>
-                {['Vazifa', 'Buyurtma', 'Muddat', 'Boshlandi', 'Tugadi', 'Status', 'Baho', 'Rasm'].map((h, i) => (
-                  <th key={i} style={{ padding: '12px 20px', textAlign: 'left', color: '#555', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 500 }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {tasks.map((task) => {
-                const status = STATUS_LABELS[task.status];
-                const isOverdue = new Date(task.deadline) < new Date() && task.status !== 'completed';
-                return (
-                  <tr key={task._id} style={{ borderTop: '1px solid #2a2d3a' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = '#1f2235')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                  >
-                    <td style={{ padding: '14px 20px', fontWeight: 500, fontSize: '14px' }}>{task.title}</td>
-                    <td style={{ padding: '14px 20px', color: '#666', fontSize: '13px' }}>{task.order?.title}</td>
-                    <td style={{ padding: '14px 20px', fontSize: '13px', color: isOverdue ? '#f87171' : '#666' }}>
-                      {isOverdue ? '⚠️ ' : ''}{new Date(task.deadline).toLocaleDateString('uz-UZ')}
-                    </td>
-                    <td style={{ padding: '14px 20px', color: '#666', fontSize: '13px' }}>
-                      {task.startedAt ? new Date(task.startedAt).toLocaleDateString('uz-UZ') : '—'}
-                    </td>
-                    <td style={{ padding: '14px 20px', color: '#666', fontSize: '13px' }}>
-                      {task.completedAt ? new Date(task.completedAt).toLocaleDateString('uz-UZ') : '—'}
-                    </td>
-                    <td style={{ padding: '14px 20px' }}>
-                      <span style={{ background: status.bg, color: status.color, borderRadius: '6px', padding: '4px 10px', fontSize: '12px', fontWeight: 600 }}>
-                        {status.label}
-                      </span>
-                    </td>
-                    <td style={{ padding: '14px 20px' }}>
-                      {task.rating ? (
-                        <span style={{ color: '#f0c040' }}>{'⭐'.repeat(task.rating)}</span>
-                      ) : task.status === 'completed' ? (
-                        <button
-                          onClick={() => setRatingTask(task._id)}
-                          style={{ background: '#2a2410', border: '1px solid #f0c040', color: '#f0c040', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', cursor: 'pointer' }}
-                        >
-                          Baholash
-                        </button>
-                      ) : '—'}
-                    </td>
-                    <td style={{ padding: '14px 20px' }}>
-                      {task.completionPhoto ? (
-                        <button
-                          onClick={() => setPhotoTask(task)}
-                          style={{ background: '#1a2a3a', border: 'none', color: '#60a5fa', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', cursor: 'pointer' }}
-                        >
-                          📸 Ko'rish
-                        </button>
-                      ) : '—'}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
+          {/* ── Hero card ── */}
+          <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] overflow-hidden">
+            {/* Amber top stripe */}
+            <div className="h-1 w-full bg-gradient-to-r from-[#f0c040] via-[#e8a045] to-[#f0c040]" />
 
-      {/* Rating Modal */}
-      {ratingTask && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div style={{ background: '#1a1d27', borderRadius: '20px', padding: '32px', width: '360px', border: '1px solid #2a2d3a', textAlign: 'center' }}>
-            <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: '20px', fontWeight: 800, margin: '0 0 24px' }}>Ishni baholang</h2>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '24px' }}>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  onClick={() => setRating(star)}
-                  style={{ background: 'none', border: 'none', fontSize: '32px', cursor: 'pointer', opacity: star <= rating ? 1 : 0.3, transition: 'opacity 0.15s' }}
+            <div className="p-5 sm:p-7 flex flex-col sm:flex-row sm:items-center gap-5">
+              {/* Avatar */}
+              <div
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#f0c040] flex items-center justify-center text-[#0f1117] text-2xl sm:text-3xl font-extrabold shrink-0 self-start sm:self-auto"
+                style={{ fontFamily: "'Syne', sans-serif" }}
+              >
+                {initials}
+              </div>
+
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <h1
+                  className="text-xl sm:text-2xl font-extrabold text-white leading-tight"
+                  style={{ fontFamily: "'Syne', sans-serif" }}
                 >
-                  ⭐
-                </button>
-              ))}
-            </div>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button onClick={() => setRatingTask(null)} style={{ flex: 1, background: 'transparent', border: '1px solid #2a2d3a', color: '#888', borderRadius: '10px', padding: '12px', cursor: 'pointer' }}>
-                Bekor
-              </button>
-              <button onClick={() => handleRating(ratingTask)} style={{ flex: 1, background: '#f0c040', color: '#0f1117', border: 'none', borderRadius: '10px', padding: '12px', fontFamily: "'Syne', sans-serif", fontWeight: 700, cursor: 'pointer' }}>
-                Saqlash
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+                  {worker.fullName}
+                </h1>
+                <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-2">
+                  <span className="text-[#666] text-sm">📞 +{worker.phoneNumber}</span>
+                  {worker.position && (
+                    <span className="text-[#666] text-sm">💼 {worker.position}</span>
+                  )}
+                  <span className="text-[#666] text-sm">
+                    📅 {new Date(worker.createdAt).toLocaleDateString('uz-UZ')} dan
+                  </span>
+                </div>
+              </div>
 
-      {/* Photo Modal */}
-      {photoTask && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }} onClick={() => setPhotoTask(null)}>
-          <div style={{ background: '#1a1d27', borderRadius: '20px', padding: '24px', width: '500px', border: '1px solid #2a2d3a' }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, margin: 0 }}>{photoTask.title} — Ish rasmi</h3>
-              <button onClick={() => setPhotoTask(null)} style={{ background: 'transparent', border: 'none', color: '#888', fontSize: '20px', cursor: 'pointer' }}>✕</button>
+              {/* Telegram badge */}
+              <div className="self-start sm:self-auto shrink-0">
+                {worker.telegramChatId ? (
+                  <span className="inline-flex items-center gap-1.5 bg-emerald-950 text-emerald-400 border border-emerald-800/30 rounded-xl px-3.5 py-2 text-xs font-semibold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    Telegram ulangan
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 bg-red-950 text-red-400 border border-red-800/30 rounded-xl px-3.5 py-2 text-xs font-semibold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                    Telegram ulanmagan
+                  </span>
+                )}
+              </div>
             </div>
-            <img
-              src={`https://api.telegram.org/file/bot${botToken}/${photoTask.completionPhoto}`}
-              alt="Ish rasmi"
-              style={{ width: '100%', borderRadius: '12px', objectFit: 'cover' }}
-            />
           </div>
+
+          {/* ── Stats grid ── */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            {[
+              { label: 'Jami vazifa',  value: tasks.length,            color: 'text-white'        },
+              { label: 'Bajarilgan',   value: completedTasks.length,   color: 'text-emerald-400'  },
+              { label: 'Jarayonda',   value: inProgressTasks.length,  color: 'text-amber-400'    },
+              { label: 'Kechikkan',   value: overdueTasks.length,     color: 'text-red-400'      },
+              { label: "O'rtacha baho", value: avgRating,             color: 'text-amber-400', prefix: '⭐ ' },
+            ].map(({ label, value, color, prefix }) => (
+              <div
+                key={label}
+                className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] p-4 text-center last:col-span-2 sm:last:col-span-1"
+              >
+                <p className="text-[#555] text-[10px] uppercase tracking-widest mb-2">{label}</p>
+                <p
+                  className={`text-2xl sm:text-3xl font-extrabold ${color}`}
+                  style={{ fontFamily: "'Syne', sans-serif" }}
+                >
+                  {prefix}{value}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* ── Tasks ── */}
+          <div>
+            <div className="flex items-center justify-between mb-3 px-0.5">
+              <p
+                className="text-white font-bold"
+                style={{ fontFamily: "'Syne', sans-serif" }}
+              >
+                Barcha vazifalar
+                <span className="text-[#555] font-normal text-sm ml-2">({tasks.length})</span>
+              </p>
+            </div>
+
+            {tasks.length === 0 ? (
+              <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] py-16 text-center text-[#555]">
+                <p className="text-4xl mb-3">📋</p>
+                <p className="text-sm">Hali vazifa yo'q</p>
+              </div>
+            ) : (
+              <>
+                {/* ── Mobile: cards ── */}
+                <div className="sm:hidden space-y-3">
+                  {tasks.map((task) => (
+                    <TaskCard
+                      key={task._id}
+                      task={task}
+                      onRate={() => setRatingTask(task._id)}
+                      onPhoto={() => setPhotoTask(task)}
+                    />
+                  ))}
+                </div>
+
+                {/* ── Desktop: table ── */}
+                <div className="hidden sm:block bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] overflow-hidden">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="bg-[#14161f]">
+                        {['Vazifa', 'Buyurtma', 'Muddat', 'Boshlandi', 'Tugadi', 'Status', 'Baho', 'Rasm'].map((h) => (
+                          <th
+                            key={h}
+                            className="px-5 py-3 text-left text-[#555] text-[11px] font-medium uppercase tracking-widest"
+                          >
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tasks.map((task) => {
+                        const sm = STATUS_META[task.status];
+                        const overdue = isOverdue(task);
+                        return (
+                          <tr
+                            key={task._id}
+                            className="border-t border-[#2a2d3a] hover:bg-[#1f2235] transition-colors"
+                          >
+                            <td className="px-5 py-3.5 font-medium text-sm text-white max-w-[180px] truncate">
+                              {task.title}
+                            </td>
+                            <td className="px-5 py-3.5 text-[#666] text-sm max-w-[140px] truncate">
+                              {task.order?.title}
+                            </td>
+                            <td className={`px-5 py-3.5 text-sm ${overdue ? 'text-red-400 font-medium' : 'text-[#666]'}`}>
+                              {overdue ? '⚠ ' : ''}{fmtDate(task.deadline)}
+                            </td>
+                            <td className="px-5 py-3.5 text-[#666] text-sm">{fmtDate(task.startedAt)}</td>
+                            <td className="px-5 py-3.5 text-[#666] text-sm">{fmtDate(task.completedAt)}</td>
+                            <td className="px-5 py-3.5">
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold ${sm.badge}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${sm.dot}`} />
+                                {sm.label}
+                              </span>
+                            </td>
+                            <td className="px-5 py-3.5">
+                              {task.rating ? (
+                                <span className="text-amber-400 text-sm">{'⭐'.repeat(task.rating)}</span>
+                              ) : task.status === 'completed' ? (
+                                <button
+                                  onClick={() => setRatingTask(task._id)}
+                                  className="text-[11px] px-2.5 py-1 rounded-lg bg-amber-950 border border-amber-800/30 text-amber-400 font-semibold hover:bg-amber-900 transition"
+                                >
+                                  Baholash
+                                </button>
+                              ) : (
+                                <span className="text-[#444] text-sm">—</span>
+                              )}
+                            </td>
+                            <td className="px-5 py-3.5">
+                              {task.completionPhoto ? (
+                                <button
+                                  onClick={() => setPhotoTask(task)}
+                                  className="text-[11px] px-2.5 py-1 rounded-lg bg-blue-950 border border-blue-800/30 text-blue-400 font-semibold hover:bg-blue-900 transition"
+                                >
+                                  📸 Ko'rish
+                                </button>
+                              ) : (
+                                <span className="text-[#444] text-sm">—</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </div>
+
         </div>
-      )}
-    </div>
+      </div>
+    </>
   );
 }

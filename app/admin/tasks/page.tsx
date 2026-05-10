@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface Worker {
   _id: string;
   fullName: string;
@@ -25,23 +26,227 @@ interface Task {
   createdAt: string;
 }
 
-const STATUS_LABELS = {
-  pending: { label: 'Kutilmoqda', color: '#60a5fa', bg: '#1a2a3a' },
-  in_progress: { label: 'Jarayonda', color: '#f0c040', bg: '#2a2410' },
-  completed: { label: 'Tugallangan', color: '#4ade80', bg: '#142614' },
-};
+type FormState = { title: string; order: string; worker: string; deadline: string };
 
+// ─── Constants ────────────────────────────────────────────────────────────────
+const STATUS_META = {
+  pending:     { label: 'Kutilmoqda', badge: 'bg-blue-950  text-blue-400',    dot: 'bg-blue-400'    },
+  in_progress: { label: 'Jarayonda',  badge: 'bg-amber-950 text-amber-400',   dot: 'bg-amber-400'   },
+  completed:   { label: 'Tugallandi', badge: 'bg-emerald-950 text-emerald-400', dot: 'bg-emerald-400' },
+} as const;
+
+const fmtDate = (d?: string) =>
+  d ? new Date(d).toLocaleDateString('uz-UZ') : '—';
+
+const isOverdue = (t: Task) =>
+  new Date(t.deadline) < new Date() && t.status !== 'completed';
+
+const EMPTY_FORM: FormState = { title: '', order: '', worker: '', deadline: '' };
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function Toast({ msg }: { msg: string }) {
+  return (
+    <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-[#1a1d27] border border-[#2a2d3a] text-white text-sm font-medium px-5 py-2.5 rounded-full shadow-xl animate-fade-in whitespace-nowrap pointer-events-none">
+      {msg}
+    </div>
+  );
+}
+
+function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
+  return (
+    <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] p-4 sm:p-5">
+      <p className="text-[#555] text-[10px] sm:text-[11px] uppercase tracking-widest mb-2">{label}</p>
+      <p className={`text-2xl sm:text-3xl font-extrabold ${color}`} style={{ fontFamily: "'Syne', sans-serif" }}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+// Mobile task card
+function TaskCard({ task, onDelete }: { task: Task; onDelete: () => void }) {
+  const sm = STATUS_META[task.status];
+  const overdue = isOverdue(task);
+
+  return (
+    <div className={`bg-[#1a1d27] rounded-2xl border p-4 space-y-3 ${overdue ? 'border-red-900/50' : 'border-[#2a2d3a]'}`}>
+      {/* Title row */}
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-xl bg-[#14161f] flex items-center justify-center text-lg shrink-0">📋</div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-white leading-snug">{task.title}</p>
+          <p className="text-xs text-[#555] mt-0.5 truncate">📦 {task.order?.title}</p>
+        </div>
+        <span className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold ${sm.badge}`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${sm.dot}`} />
+          {sm.label}
+        </span>
+      </div>
+
+      {/* Meta */}
+      <div className="grid grid-cols-2 gap-2">
+        <div className="bg-[#14161f] rounded-xl p-2.5">
+          <p className="text-[10px] text-[#555] uppercase tracking-wide mb-0.5">Usta</p>
+          <p className="text-xs text-[#aaa] font-medium truncate">👷 {task.worker?.fullName}</p>
+        </div>
+        <div className="bg-[#14161f] rounded-xl p-2.5">
+          <p className="text-[10px] text-[#555] uppercase tracking-wide mb-0.5">Muddat</p>
+          <p className={`text-xs font-medium ${overdue ? 'text-red-400' : 'text-[#aaa]'}`}>
+            {overdue ? '⚠ ' : '⏰ '}{fmtDate(task.deadline)}
+          </p>
+        </div>
+        {task.startedAt && (
+          <div className="bg-[#14161f] rounded-xl p-2.5">
+            <p className="text-[10px] text-[#555] uppercase tracking-wide mb-0.5">Boshlandi</p>
+            <p className="text-xs text-[#aaa] font-medium">{fmtDate(task.startedAt)}</p>
+          </div>
+        )}
+        {task.completedAt && (
+          <div className="bg-[#14161f] rounded-xl p-2.5">
+            <p className="text-[10px] text-[#555] uppercase tracking-wide mb-0.5">Tugadi</p>
+            <p className="text-xs text-emerald-400 font-medium">{fmtDate(task.completedAt)}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Delete */}
+      <button
+        onClick={onDelete}
+        className="w-full py-2 rounded-xl border border-red-900/40 text-red-400 text-xs font-semibold hover:bg-red-950/40 transition"
+      >
+        O'chirish
+      </button>
+    </div>
+  );
+}
+
+// Add task modal
+function AddModal({
+  workers,
+  orders,
+  onClose,
+  onSubmit,
+  saving,
+}: {
+  workers: Worker[];
+  orders: Order[];
+  onClose: () => void;
+  onSubmit: (form: FormState) => void;
+  saving: boolean;
+}) {
+  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const set = (k: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setForm(prev => ({ ...prev, [k]: e.target.value }));
+
+  const valid = form.title && form.order && form.worker && form.deadline;
+
+  const inputCls =
+    'w-full bg-[#0f1117] border border-[#2a2d3a] rounded-xl px-4 py-3 text-sm text-[#e8e8e8] outline-none focus:border-[#f0c040] transition placeholder-[#444] [color-scheme:dark]';
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/80 z-50 flex items-end sm:items-center justify-center p-4"
+      onClick={e => e.target === e.currentTarget && onClose()}
+    >
+      <div className="bg-[#1a1d27] rounded-t-2xl sm:rounded-2xl border border-[#2a2d3a] w-full sm:max-w-md p-6 pb-8 sm:pb-6 animate-slide-up">
+        <div className="w-8 h-1 bg-[#2a2d3a] rounded-full mx-auto mb-5 sm:hidden" />
+
+        <h2 className="text-lg font-extrabold text-white mb-5" style={{ fontFamily: "'Syne', sans-serif" }}>
+          Yangi vazifa
+        </h2>
+
+        <div className="space-y-3.5">
+          {/* Title */}
+          <div>
+            <label className="block text-[#888] text-[11px] uppercase tracking-widest mb-1.5">Vazifa nomi</label>
+            <input
+              type="text"
+              placeholder="Kesish, Yig'ish, Bo'yash..."
+              value={form.title}
+              onChange={set('title')}
+              className={inputCls}
+            />
+          </div>
+
+          {/* Order */}
+          <div>
+            <label className="block text-[#888] text-[11px] uppercase tracking-widest mb-1.5">Buyurtma</label>
+            <select value={form.order} onChange={set('order')} className={inputCls}>
+              <option value="">Buyurtma tanlang</option>
+              {orders.map(o => <option key={o._id} value={o._id}>{o.title}</option>)}
+            </select>
+          </div>
+
+          {/* Worker */}
+          <div>
+            <label className="block text-[#888] text-[11px] uppercase tracking-widest mb-1.5">Usta</label>
+            <select value={form.worker} onChange={set('worker')} className={inputCls}>
+              <option value="">Usta tanlang</option>
+              {workers.map(w => (
+                <option key={w._id} value={w._id}>
+                  {w.fullName} {w.telegramChatId ? '✓' : "(Telegram yo'q)"}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Deadline */}
+          <div>
+            <label className="block text-[#888] text-[11px] uppercase tracking-widest mb-1.5">Muddat</label>
+            <input
+              type="date"
+              value={form.deadline}
+              onChange={set('deadline')}
+              className={inputCls}
+            />
+          </div>
+
+          {/* Telegram notice */}
+          <div className="bg-emerald-950/50 border border-emerald-800/30 rounded-xl px-4 py-3">
+            <p className="text-emerald-400 text-xs">
+              📲 Vazifa yaratilganda usta Telegramga avtomatik xabar oladi
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 mt-5">
+          <button
+            onClick={onClose}
+            className="py-3 rounded-xl border border-[#2a2d3a] text-[#888] text-sm font-medium hover:bg-[#2a2d3a] transition"
+          >
+            Bekor qilish
+          </button>
+          <button
+            onClick={() => valid && onSubmit(form)}
+            disabled={!valid || saving}
+            className="py-3 rounded-xl bg-[#f0c040] text-[#0f1117] text-sm font-bold hover:bg-[#d4a832] disabled:opacity-40 disabled:cursor-not-allowed transition"
+            style={{ fontFamily: "'Syne', sans-serif" }}
+          >
+            {saving ? 'Yuborilmoqda...' : '📲 Yuborish'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function TasksPage() {
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasks, setTasks]     = useState<Task[]>([]);
   const [workers, setWorkers] = useState<Worker[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders]   = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ title: '', order: '', worker: '', deadline: '' });
+  const [saving, setSaving]   = useState(false);
+  const [toast, setToast]     = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  };
 
   const fetchAll = async () => {
-    setLoading(true);
     const [tasksRes, workersRes, ordersRes] = await Promise.all([
       fetch('/api/tasks'),
       fetch('/api/workers'),
@@ -53,220 +258,186 @@ export default function TasksPage() {
     setLoading(false);
   };
 
-useEffect(() => {
-  fetchAll();
-
-  // Real-time: har 5 sekundda avtomatik yangilanish
-  const eventSource = new EventSource('/api/events');
-  eventSource.onmessage = () => {
+  useEffect(() => {
     fetchAll();
-  };
-  return () => eventSource.close();
-}, []);
+    const es = new EventSource('/api/events');
+    es.onmessage = () => fetchAll();
+    return () => es.close();
+  }, []);
 
-  const handleSubmit = async () => {
-    if (!form.title || !form.order || !form.worker || !form.deadline) return;
+  const handleSubmit = async (form: FormState) => {
     setSaving(true);
     await fetch('/api/tasks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),
     });
-    setForm({ title: '', order: '', worker: '', deadline: '' });
-    setShowModal(false);
     setSaving(false);
+    setShowModal(false);
+    showToast('Vazifa yaratildi ✓');
     fetchAll();
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Vazifani o\'chirmoqchimisiz?')) return;
+    if (!confirm("Vazifani o'chirmoqchimisiz?")) return;
     await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
+    showToast("Vazifa o'chirildi");
     fetchAll();
   };
 
   const stats = {
-    total: tasks.length,
-    pending: tasks.filter(t => t.status === 'pending').length,
+    total:       tasks.length,
+    pending:     tasks.filter(t => t.status === 'pending').length,
     in_progress: tasks.filter(t => t.status === 'in_progress').length,
-    completed: tasks.filter(t => t.status === 'completed').length,
+    completed:   tasks.filter(t => t.status === 'completed').length,
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0f1117', color: '#e8e8e8', fontFamily: "'DM Sans', sans-serif", padding: '32px' }}>
-      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap');
+        @keyframes slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        @keyframes fade-in  { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-slide-up   { animation: slide-up 0.25s ease both; }
+        .animate-fade-in    { animation: fade-in 0.25s ease both; }
+      `}</style>
 
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '40px' }}>
-        <div>
-          <p style={{ color: '#555', fontSize: '13px', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '6px' }}>Mebel CRM</p>
-          <h1 style={{ fontFamily: "'Syne', sans-serif", fontSize: '36px', fontWeight: 800, margin: 0, background: 'linear-gradient(135deg, #fff 0%, #888 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            Vazifalar
-          </h1>
-        </div>
-        <button
-          onClick={() => setShowModal(true)}
-          style={{ background: '#f0c040', color: '#0f1117', border: 'none', borderRadius: '10px', padding: '12px 24px', fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '14px', cursor: 'pointer' }}
-        >
-          + Vazifa qo'shish
-        </button>
-      </div>
-
-      {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '32px' }}>
-        {[
-          { label: 'Jami', value: stats.total, color: '#e8e8e8' },
-          { label: 'Kutilmoqda', value: stats.pending, color: '#60a5fa' },
-          { label: 'Jarayonda', value: stats.in_progress, color: '#f0c040' },
-          { label: 'Tugallangan', value: stats.completed, color: '#4ade80' },
-        ].map((stat, i) => (
-          <div key={i} style={{ background: '#1a1d27', borderRadius: '14px', padding: '20px 24px', border: '1px solid #2a2d3a' }}>
-            <p style={{ color: '#555', fontSize: '12px', letterSpacing: '1.5px', textTransform: 'uppercase', margin: '0 0 8px' }}>{stat.label}</p>
-            <p style={{ fontFamily: "'Syne', sans-serif", fontSize: '32px', fontWeight: 800, color: stat.color, margin: 0 }}>{stat.value}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Tasks List */}
-      <div style={{ display: 'grid', gap: '12px' }}>
-        {loading ? (
-          <div style={{ background: '#1a1d27', borderRadius: '16px', padding: '60px', textAlign: 'center', color: '#555' }}>Yuklanmoqda...</div>
-        ) : tasks.length === 0 ? (
-          <div style={{ background: '#1a1d27', borderRadius: '16px', padding: '60px', textAlign: 'center', color: '#555' }}>
-            <p style={{ fontSize: '40px', margin: '0 0 12px' }}>📋</p>
-            <p>Hali vazifa qo'shilmagan</p>
-          </div>
-        ) : tasks.map((task) => {
-          const status = STATUS_LABELS[task.status];
-          const deadline = new Date(task.deadline);
-          const isOverdue = deadline < new Date() && task.status !== 'completed';
-          return (
-            <div key={task._id} style={{ background: '#1a1d27', borderRadius: '16px', padding: '20px 24px', border: `1px solid ${isOverdue ? '#3a1a1a' : '#2a2d3a'}`, display: 'flex', alignItems: 'center', gap: '16px' }}>
-              {/* Icon */}
-              <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#14161f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>
-                📋
-              </div>
-
-              {/* Info */}
-              <div style={{ flex: 1 }}>
-                <p style={{ margin: '0 0 6px', fontWeight: 600, fontSize: '15px' }}>{task.title}</p>
-                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                  <p style={{ margin: 0, color: '#666', fontSize: '13px' }}>📦 {task.order?.title}</p>
-                  <p style={{ margin: 0, color: '#666', fontSize: '13px' }}>👷 {task.worker?.fullName}</p>
-                  <p style={{ margin: 0, fontSize: '13px', color: isOverdue ? '#f87171' : '#666' }}>
-                    ⏰ {isOverdue ? '⚠️ ' : ''}{deadline.toLocaleDateString('uz-UZ')}
-                  </p>
-                </div>
-              </div>
-
-              {/* Timeline */}
-              {task.startedAt && (
-                <div style={{ textAlign: 'right', fontSize: '12px', color: '#555' }}>
-                  <p style={{ margin: '0 0 2px' }}>Boshlandi: {new Date(task.startedAt).toLocaleDateString('uz-UZ')}</p>
-                  {task.completedAt && <p style={{ margin: 0, color: '#4ade80' }}>Tugadi: {new Date(task.completedAt).toLocaleDateString('uz-UZ')}</p>}
-                </div>
-              )}
-
-              {/* Status */}
-              <span style={{ background: status.bg, color: status.color, borderRadius: '8px', padding: '6px 14px', fontSize: '12px', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                {status.label}
-              </span>
-
-              {/* Delete */}
-              <button
-                onClick={() => handleDelete(task._id)}
-                style={{ background: 'transparent', border: '1px solid #3a1a1a', color: '#f87171', borderRadius: '8px', padding: '6px 14px', fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap' }}
-              >
-                O'chirish
-              </button>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Modal */}
+      {toast && <Toast msg={toast} />}
       {showModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div style={{ background: '#1a1d27', borderRadius: '20px', padding: '32px', width: '440px', border: '1px solid #2a2d3a' }}>
-            <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: '22px', fontWeight: 800, margin: '0 0 24px' }}>Yangi vazifa</h2>
-
-            {/* Vazifa nomi */}
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', color: '#888', fontSize: '12px', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '8px' }}>Vazifa nomi</label>
-              <input
-                type="text"
-                placeholder="Kesish, Yig'ish, Bo'yash..."
-                value={form.title}
-                onChange={e => setForm(prev => ({ ...prev, title: e.target.value }))}
-                style={{ width: '100%', background: '#0f1117', border: '1px solid #2a2d3a', borderRadius: '10px', padding: '12px 16px', color: '#e8e8e8', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
-              />
-            </div>
-
-            {/* Buyurtma tanlash */}
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', color: '#888', fontSize: '12px', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '8px' }}>Buyurtma</label>
-              <select
-                value={form.order}
-                onChange={e => setForm(prev => ({ ...prev, order: e.target.value }))}
-                style={{ width: '100%', background: '#0f1117', border: '1px solid #2a2d3a', borderRadius: '10px', padding: '12px 16px', color: form.order ? '#e8e8e8' : '#555', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
-              >
-                <option value="">Buyurtma tanlang</option>
-                {orders.map(o => <option key={o._id} value={o._id}>{o.title}</option>)}
-              </select>
-            </div>
-
-            {/* Usta tanlash */}
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', color: '#888', fontSize: '12px', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '8px' }}>Usta</label>
-              <select
-                value={form.worker}
-                onChange={e => setForm(prev => ({ ...prev, worker: e.target.value }))}
-                style={{ width: '100%', background: '#0f1117', border: '1px solid #2a2d3a', borderRadius: '10px', padding: '12px 16px', color: form.worker ? '#e8e8e8' : '#555', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
-              >
-                <option value="">Usta tanlang</option>
-                {workers.map(w => (
-                  <option key={w._id} value={w._id}>
-                    {w.fullName} {w.telegramChatId ? '✓' : '(Telegram yo\'q)'}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Muddat */}
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', color: '#888', fontSize: '12px', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '8px' }}>Muddat</label>
-              <input
-                type="date"
-                value={form.deadline}
-                onChange={e => setForm(prev => ({ ...prev, deadline: e.target.value }))}
-                style={{ width: '100%', background: '#0f1117', border: '1px solid #2a2d3a', borderRadius: '10px', padding: '12px 16px', color: '#e8e8e8', fontSize: '14px', outline: 'none', boxSizing: 'border-box', colorScheme: 'dark' }}
-              />
-            </div>
-
-            {/* Telegram eslatmasi */}
-            <div style={{ background: '#14261a', border: '1px solid #1a3a22', borderRadius: '10px', padding: '12px 16px', marginBottom: '24px' }}>
-              <p style={{ margin: 0, color: '#4ade80', fontSize: '13px' }}>
-                📲 Vazifa yaratilganda usta Telegramga avtomatik xabar oladi
-              </p>
-            </div>
-
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button
-                onClick={() => setShowModal(false)}
-                style={{ flex: 1, background: 'transparent', border: '1px solid #2a2d3a', color: '#888', borderRadius: '10px', padding: '12px', cursor: 'pointer', fontSize: '14px' }}
-              >
-                Bekor qilish
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={saving}
-                style={{ flex: 1, background: '#f0c040', color: '#0f1117', border: 'none', borderRadius: '10px', padding: '12px', fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '14px', cursor: 'pointer' }}
-              >
-                {saving ? 'Yuborilmoqda...' : '📲 Yuborish'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <AddModal
+          workers={workers}
+          orders={orders}
+          onClose={() => setShowModal(false)}
+          onSubmit={handleSubmit}
+          saving={saving}
+        />
       )}
-    </div>
+
+      <div
+        className="min-h-screen bg-[#0f1117] text-[#e8e8e8]"
+        style={{ fontFamily: "'DM Sans', sans-serif" }}
+      >
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
+
+          {/* ── Header ── */}
+          <div className="flex items-start justify-between mb-6 sm:mb-10">
+            <div>
+              <p className="text-[#555] text-[11px] uppercase tracking-[2px] mb-1">Mebel CRM</p>
+              <h1
+                className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-br from-white to-[#888] bg-clip-text text-transparent"
+                style={{ fontFamily: "'Syne', sans-serif" }}
+              >
+                Vazifalar
+              </h1>
+            </div>
+            <button
+              onClick={() => setShowModal(true)}
+              className="bg-[#f0c040] text-[#0f1117] text-sm font-bold px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl hover:bg-[#d4a832] active:scale-95 transition whitespace-nowrap"
+              style={{ fontFamily: "'Syne', sans-serif" }}
+            >
+              + Vazifa qo'shish
+            </button>
+          </div>
+
+          {/* ── Stats ── */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 sm:mb-8">
+            <StatCard label="Jami"        value={stats.total}       color="text-white"         />
+            <StatCard label="Kutilmoqda"  value={stats.pending}     color="text-blue-400"      />
+            <StatCard label="Jarayonda"   value={stats.in_progress} color="text-amber-400"     />
+            <StatCard label="Tugallandi"  value={stats.completed}   color="text-emerald-400"   />
+          </div>
+
+          {/* ── Tasks ── */}
+          {loading ? (
+            <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] py-16 flex flex-col items-center gap-3 text-[#555]">
+              <div className="w-8 h-8 rounded-full border-2 border-[#f0c040] border-t-transparent animate-spin" />
+              <p className="text-sm">Yuklanmoqda...</p>
+            </div>
+          ) : tasks.length === 0 ? (
+            <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] py-20 text-center text-[#555]">
+              <p className="text-5xl mb-4">📋</p>
+              <p className="text-sm">Hali vazifa qo'shilmagan</p>
+              <button
+                onClick={() => setShowModal(true)}
+                className="mt-4 text-sm text-[#f0c040] underline underline-offset-2"
+              >
+                Birinchi vazifani qo'shish
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Mobile: cards */}
+              <div className="sm:hidden space-y-3">
+                {tasks.map(task => (
+                  <TaskCard
+                    key={task._id}
+                    task={task}
+                    onDelete={() => handleDelete(task._id)}
+                  />
+                ))}
+              </div>
+
+              {/* Desktop: list rows */}
+              <div className="hidden sm:flex flex-col gap-3">
+                {tasks.map(task => {
+                  const sm = STATUS_META[task.status];
+                  const overdue = isOverdue(task);
+                  return (
+                    <div
+                      key={task._id}
+                      className={`bg-[#1a1d27] rounded-2xl border flex items-center gap-4 px-5 py-4 hover:bg-[#1f2235] transition ${
+                        overdue ? 'border-red-900/50' : 'border-[#2a2d3a]'
+                      }`}
+                    >
+                      {/* Icon */}
+                      <div className="w-11 h-11 rounded-xl bg-[#14161f] flex items-center justify-center text-xl shrink-0">
+                        📋
+                      </div>
+
+                      {/* Main info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-[15px] text-white truncate">{task.title}</p>
+                        <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1">
+                          <span className="text-[#666] text-xs">📦 {task.order?.title}</span>
+                          <span className="text-[#666] text-xs">👷 {task.worker?.fullName}</span>
+                          <span className={`text-xs ${overdue ? 'text-red-400 font-medium' : 'text-[#666]'}`}>
+                            ⏰ {overdue ? '⚠ ' : ''}{fmtDate(task.deadline)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Timeline */}
+                      {task.startedAt && (
+                        <div className="text-right shrink-0 hidden lg:block">
+                          <p className="text-[#555] text-xs">Boshlandi: {fmtDate(task.startedAt)}</p>
+                          {task.completedAt && (
+                            <p className="text-emerald-400 text-xs mt-0.5">Tugadi: {fmtDate(task.completedAt)}</p>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Status badge */}
+                      <span className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold ${sm.badge}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${sm.dot}`} />
+                        {sm.label}
+                      </span>
+
+                      {/* Delete */}
+                      <button
+                        onClick={() => handleDelete(task._id)}
+                        className="shrink-0 text-xs px-3 py-1.5 rounded-lg border border-red-900/40 text-red-400 hover:bg-red-950/40 transition"
+                      >
+                        O'chirish
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+        </div>
+      </div>
+    </>
   );
 }

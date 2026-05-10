@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface Order {
   _id: string;
   title: string;
@@ -12,231 +13,493 @@ interface Order {
   createdAt: string;
 }
 
-const STATUS_LABELS = {
-  new: { label: 'Yangi', color: '#60a5fa', bg: '#1a2a3a' },
-  in_progress: { label: 'Jarayonda', color: '#f0c040', bg: '#2a2410' },
-  completed: { label: 'Tugallangan', color: '#4ade80', bg: '#142614' },
+type FormState = {
+  title: string;
+  clientName: string;
+  deadline: string;
+  images: string[];
 };
 
-export default function OrdersPage() {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [saving, setSaving] = useState(false);
+// ─── Constants ────────────────────────────────────────────────────────────────
+const STATUS_META = {
+  new:         { label: 'Yangi',      badge: 'bg-blue-950   text-blue-400',    dot: 'bg-blue-400'    },
+  in_progress: { label: 'Jarayonda',  badge: 'bg-amber-950  text-amber-400',   dot: 'bg-amber-400'   },
+  completed:   { label: 'Tugallandi', badge: 'bg-emerald-950 text-emerald-400', dot: 'bg-emerald-400' },
+} as const;
+
+const fmtDate = (d: string) => new Date(d).toLocaleDateString('uz-UZ');
+const isOverdue = (o: Order) => new Date(o.deadline) < new Date() && o.status !== 'completed';
+
+const EMPTY_FORM: FormState = { title: '', clientName: '', deadline: '', images: [] };
+
+const inputCls =
+  'w-full bg-[#0f1117] border border-[#2a2d3a] rounded-xl px-4 py-3 text-sm text-[#e8e8e8] outline-none focus:border-[#f0c040] transition placeholder-[#444] [color-scheme:dark]';
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function Toast({ msg }: { msg: string }) {
+  return (
+    <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-[#1a1d27] border border-[#2a2d3a] text-white text-sm font-medium px-5 py-2.5 rounded-full shadow-xl animate-fade-in whitespace-nowrap pointer-events-none">
+      {msg}
+    </div>
+  );
+}
+
+function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
+  return (
+    <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] p-4 sm:p-5">
+      <p className="text-[#555] text-[10px] sm:text-[11px] uppercase tracking-widest mb-2">{label}</p>
+      <p className={`text-2xl sm:text-3xl font-extrabold ${color}`} style={{ fontFamily: "'Syne', sans-serif" }}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+// Mobile: order card
+function OrderCard({
+  order,
+  onDelete,
+  onImages,
+}: {
+  order: Order;
+  onDelete: () => void;
+  onImages: () => void;
+}) {
+  const sm = STATUS_META[order.status];
+  const overdue = isOverdue(order);
+
+  return (
+    <div className={`bg-[#1a1d27] rounded-2xl border p-4 space-y-3 ${overdue ? 'border-red-900/50' : 'border-[#2a2d3a]'}`}>
+      {/* Title + status */}
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-xl bg-[#14161f] flex items-center justify-center text-xl shrink-0">📦</div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-white leading-snug truncate">{order.title}</p>
+          <p className="text-xs text-[#555] mt-0.5">👤 {order.clientName}</p>
+        </div>
+        <span className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold ${sm.badge}`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${sm.dot}`} />
+          {sm.label}
+        </span>
+      </div>
+
+      {/* Deadline + image count */}
+      <div className="flex items-center gap-2">
+        <div className="flex-1 bg-[#14161f] rounded-xl px-3 py-2">
+          <p className="text-[10px] text-[#555] uppercase tracking-wide mb-0.5">Muddat</p>
+          <p className={`text-xs font-medium ${overdue ? 'text-red-400' : 'text-[#aaa]'}`}>
+            {overdue ? '⚠ ' : ''}{fmtDate(order.deadline)}
+          </p>
+        </div>
+        {order.images?.length > 0 && (
+          <button
+            onClick={onImages}
+            className="bg-blue-950 border border-blue-800/30 text-blue-400 text-xs font-semibold px-3 py-2 rounded-xl hover:bg-blue-900 transition"
+          >
+            🖼 {order.images.length} ta rasm
+          </button>
+        )}
+      </div>
+
+      {/* Delete */}
+      <button
+        onClick={onDelete}
+        className="w-full py-2 rounded-xl border border-red-900/40 text-red-400 text-xs font-semibold hover:bg-red-950/40 transition"
+      >
+        O'chirish
+      </button>
+    </div>
+  );
+}
+
+// Add order modal
+function AddModal({
+  onClose,
+  onSubmit,
+  saving,
+}: {
+  onClose: () => void;
+  onSubmit: (form: FormState) => void;
+  saving: boolean;
+}) {
+  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [previews, setPreviews] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [form, setForm] = useState({ title: '', clientName: '', deadline: '', images: [] as string[] });
-  const [previewImages, setPreviewImages] = useState<string[]>([]);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
-  const fetchOrders = async () => {
-    setLoading(true);
-    const res = await fetch('/api/orders');
-    const data = await res.json();
-    setOrders(data);
-    setLoading(false);
-  };
-
-  useEffect(() => { fetchOrders(); }, []);
+  const set = (k: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setForm(prev => ({ ...prev, [k]: e.target.value }));
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
     setUploading(true);
-
-    const uploadedUrls: string[] = [];
+    const urls: string[] = [];
     for (const file of Array.from(files)) {
-      const formData = new FormData();
-      formData.append('file', file);
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/upload', { method: 'POST', body: fd });
       const data = await res.json();
-      if (data.url) uploadedUrls.push(data.url);
+      if (data.url) urls.push(data.url);
     }
-
-    setForm(prev => ({ ...prev, images: [...prev.images, ...uploadedUrls] }));
-    setPreviewImages(prev => [...prev, ...uploadedUrls]);
+    setForm(prev => ({ ...prev, images: [...prev.images, ...urls] }));
+    setPreviews(prev => [...prev, ...urls]);
     setUploading(false);
   };
 
-  const handleSubmit = async () => {
-    if (!form.title || !form.clientName || !form.deadline) return;
+  const removeImage = (i: number) => {
+    setForm(prev => ({ ...prev, images: prev.images.filter((_, idx) => idx !== i) }));
+    setPreviews(prev => prev.filter((_, idx) => idx !== i));
+  };
+
+  const handleClose = () => {
+    setPreviews([]);
+    setForm(EMPTY_FORM);
+    onClose();
+  };
+
+  const valid = form.title && form.clientName && form.deadline;
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/80 z-50 flex items-end sm:items-center justify-center p-4"
+      onClick={e => e.target === e.currentTarget && handleClose()}
+    >
+      <div className="bg-[#1a1d27] rounded-t-2xl sm:rounded-2xl border border-[#2a2d3a] w-full sm:max-w-lg p-6 pb-8 sm:pb-6 max-h-[90vh] overflow-y-auto animate-slide-up">
+        <div className="w-8 h-1 bg-[#2a2d3a] rounded-full mx-auto mb-5 sm:hidden" />
+
+        <h2 className="text-lg font-extrabold text-white mb-5" style={{ fontFamily: "'Syne', sans-serif" }}>
+          Yangi buyurtma
+        </h2>
+
+        <div className="space-y-3.5">
+          {/* Text fields */}
+          {([
+            { label: 'Buyurtma nomi', key: 'title',      placeholder: 'Oshxona garnitury', type: 'text' },
+            { label: 'Mijoz ismi',    key: 'clientName', placeholder: 'Sardor Rahimov',   type: 'text' },
+            { label: 'Muddat',        key: 'deadline',   placeholder: '',                  type: 'date' },
+          ] as const).map(({ label, key, placeholder, type }) => (
+            <div key={key}>
+              <label className="block text-[#888] text-[11px] uppercase tracking-widest mb-1.5">{label}</label>
+              <input
+                type={type}
+                placeholder={placeholder}
+                value={form[key]}
+                onChange={set(key)}
+                className={inputCls}
+              />
+            </div>
+          ))}
+
+          {/* Image upload */}
+          <div>
+            <label className="block text-[#888] text-[11px] uppercase tracking-widest mb-1.5">Rasmlar</label>
+            <label className="flex items-center justify-center gap-2 bg-[#0f1117] border-2 border-dashed border-[#2a2d3a] rounded-xl py-5 cursor-pointer text-[#555] text-sm hover:border-[#f0c040]/40 hover:text-[#888] transition">
+              {uploading ? (
+                <><span className="w-4 h-4 rounded-full border-2 border-[#f0c040] border-t-transparent animate-spin" /> Yuklanmoqda...</>
+              ) : (
+                <>📸 Rasm qo'shish</>
+              )}
+              <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" disabled={uploading} />
+            </label>
+
+            {previews.length > 0 && (
+              <div className="grid grid-cols-3 gap-2 mt-3">
+                {previews.map((url, i) => (
+                  <div key={i} className="relative rounded-xl overflow-hidden aspect-square">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={url} alt="" className="w-full h-full object-cover" />
+                    <button
+                      onClick={() => removeImage(i)}
+                      className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/70 text-white text-xs flex items-center justify-center hover:bg-black transition"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 mt-5">
+          <button
+            onClick={handleClose}
+            className="py-3 rounded-xl border border-[#2a2d3a] text-[#888] text-sm font-medium hover:bg-[#2a2d3a] transition"
+          >
+            Bekor qilish
+          </button>
+          <button
+            onClick={() => valid && onSubmit(form)}
+            disabled={!valid || saving || uploading}
+            className="py-3 rounded-xl bg-[#f0c040] text-[#0f1117] text-sm font-bold hover:bg-[#d4a832] disabled:opacity-40 disabled:cursor-not-allowed transition"
+            style={{ fontFamily: "'Syne', sans-serif" }}
+          >
+            {saving ? 'Saqlanmoqda...' : 'Saqlash'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Image preview modal
+function ImageModal({ order, onClose }: { order: Order; onClose: () => void }) {
+  const [active, setActive] = useState(0);
+  return (
+    <div
+      className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] w-full max-w-lg p-5"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-base font-bold text-white" style={{ fontFamily: "'Syne', sans-serif" }}>
+              {order.title}
+            </h3>
+            <p className="text-xs text-[#555] mt-0.5">{order.images.length} ta rasm</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg bg-[#2a2d3a] text-[#888] flex items-center justify-center hover:text-white transition text-sm"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Main image */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={order.images[active]}
+          alt=""
+          className="w-full rounded-xl object-cover aspect-video mb-3"
+        />
+
+        {/* Thumbnails */}
+        {order.images.length > 1 && (
+          <div className="grid grid-cols-5 gap-2">
+            {order.images.map((url, i) => (
+              <button
+                key={i}
+                onClick={() => setActive(i)}
+                className={`rounded-lg overflow-hidden aspect-square border-2 transition ${
+                  i === active ? 'border-[#f0c040]' : 'border-transparent opacity-50 hover:opacity-80'
+                }`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={url} alt="" className="w-full h-full object-cover" />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+export default function OrdersPage() {
+  const [orders, setOrders]               = useState<Order[]>([]);
+  const [loading, setLoading]             = useState(true);
+  const [showModal, setShowModal]         = useState(false);
+  const [saving, setSaving]               = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [toast, setToast]                 = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  };
+
+  const fetchOrders = async () => {
+    const res = await fetch('/api/orders');
+    setOrders(await res.json());
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchOrders(); }, []);
+
+  const handleSubmit = async (form: FormState) => {
     setSaving(true);
     await fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),
     });
-    setForm({ title: '', clientName: '', deadline: '', images: [] });
-    setPreviewImages([]);
-    setShowModal(false);
     setSaving(false);
+    setShowModal(false);
+    showToast('Buyurtma yaratildi ✓');
     fetchOrders();
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Buyurtmani o\'chirmoqchimisiz?')) return;
+    if (!confirm("Buyurtmani o'chirmoqchimisiz?")) return;
     await fetch(`/api/orders/${id}`, { method: 'DELETE' });
+    showToast("Buyurtma o'chirildi");
     fetchOrders();
   };
 
-  const removeImage = (index: number) => {
-    setForm(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== index) }));
-    setPreviewImages(prev => prev.filter((_, i) => i !== index));
-  };
-
   const stats = {
-    total: orders.length,
-    new: orders.filter(o => o.status === 'new').length,
+    total:       orders.length,
+    new:         orders.filter(o => o.status === 'new').length,
     in_progress: orders.filter(o => o.status === 'in_progress').length,
-    completed: orders.filter(o => o.status === 'completed').length,
+    completed:   orders.filter(o => o.status === 'completed').length,
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0f1117', color: '#e8e8e8', fontFamily: "'DM Sans', sans-serif", padding: '32px' }}>
-      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap');
+        @keyframes slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        @keyframes fade-in  { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-slide-up   { animation: slide-up 0.25s ease both; }
+        .animate-fade-in    { animation: fade-in 0.25s ease both; }
+      `}</style>
 
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '40px' }}>
-        <div>
-          <p style={{ color: '#555', fontSize: '13px', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '6px' }}>Mebel CRM</p>
-          <h1 style={{ fontFamily: "'Syne', sans-serif", fontSize: '36px', fontWeight: 800, margin: 0, background: 'linear-gradient(135deg, #fff 0%, #888 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            Buyurtmalar
-          </h1>
-        </div>
-        <button onClick={() => setShowModal(true)} style={{ background: '#f0c040', color: '#0f1117', border: 'none', borderRadius: '10px', padding: '12px 24px', fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '14px', cursor: 'pointer' }}>
-          + Buyurtma qo'shish
-        </button>
-      </div>
-
-      {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '32px' }}>
-        {[
-          { label: 'Jami', value: stats.total, color: '#e8e8e8' },
-          { label: 'Yangi', value: stats.new, color: '#60a5fa' },
-          { label: 'Jarayonda', value: stats.in_progress, color: '#f0c040' },
-          { label: 'Tugallangan', value: stats.completed, color: '#4ade80' },
-        ].map((stat, i) => (
-          <div key={i} style={{ background: '#1a1d27', borderRadius: '14px', padding: '20px 24px', border: '1px solid #2a2d3a' }}>
-            <p style={{ color: '#555', fontSize: '12px', letterSpacing: '1.5px', textTransform: 'uppercase', margin: '0 0 8px' }}>{stat.label}</p>
-            <p style={{ fontFamily: "'Syne', sans-serif", fontSize: '32px', fontWeight: 800, color: stat.color, margin: 0 }}>{stat.value}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Orders List */}
-      <div style={{ display: 'grid', gap: '12px' }}>
-        {loading ? (
-          <div style={{ background: '#1a1d27', borderRadius: '16px', padding: '60px', textAlign: 'center', color: '#555' }}>Yuklanmoqda...</div>
-        ) : orders.length === 0 ? (
-          <div style={{ background: '#1a1d27', borderRadius: '16px', padding: '60px', textAlign: 'center', color: '#555' }}>
-            <p style={{ fontSize: '40px', margin: '0 0 12px' }}>📦</p>
-            <p>Hali buyurtma qo'shilmagan</p>
-          </div>
-        ) : orders.map((order) => {
-          const status = STATUS_LABELS[order.status];
-          const deadline = new Date(order.deadline);
-          const isOverdue = deadline < new Date() && order.status !== 'completed';
-          return (
-            <div key={order._id} style={{ background: '#1a1d27', borderRadius: '16px', padding: '20px 24px', border: `1px solid ${isOverdue ? '#3a1a1a' : '#2a2d3a'}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1 }}>
-                  <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#14161f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>📦</div>
-                  <div>
-                    <p style={{ margin: '0 0 4px', fontWeight: 600, fontSize: '15px' }}>{order.title}</p>
-                    <p style={{ margin: 0, color: '#666', fontSize: '13px' }}>👤 {order.clientName}</p>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  {order.images?.length > 0 && (
-                    <button onClick={() => setSelectedOrder(order)} style={{ background: '#1a2a3a', border: 'none', color: '#60a5fa', borderRadius: '8px', padding: '6px 14px', fontSize: '12px', cursor: 'pointer' }}>
-                      🖼 {order.images.length} ta rasm
-                    </button>
-                  )}
-                  <div style={{ textAlign: 'right' }}>
-                    <p style={{ margin: '0 0 2px', fontSize: '12px', color: '#555' }}>Muddat</p>
-                    <p style={{ margin: 0, fontSize: '13px', color: isOverdue ? '#f87171' : '#888' }}>
-                      {isOverdue ? '⚠️ ' : ''}{deadline.toLocaleDateString('uz-UZ')}
-                    </p>
-                  </div>
-                  <span style={{ background: status.bg, color: status.color, borderRadius: '8px', padding: '6px 14px', fontSize: '12px', fontWeight: 600 }}>{status.label}</span>
-                  <button onClick={() => handleDelete(order._id)} style={{ background: 'transparent', border: '1px solid #3a1a1a', color: '#f87171', borderRadius: '8px', padding: '6px 14px', fontSize: '12px', cursor: 'pointer' }}>O'chirish</button>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Add Modal */}
+      {toast && <Toast msg={toast} />}
       {showModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div style={{ background: '#1a1d27', borderRadius: '20px', padding: '32px', width: '480px', border: '1px solid #2a2d3a', maxHeight: '90vh', overflowY: 'auto' }}>
-            <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: '22px', fontWeight: 800, margin: '0 0 24px' }}>Yangi buyurtma</h2>
-
-            {[
-              { label: 'Buyurtma nomi', key: 'title', placeholder: 'Oshxona garnitury', type: 'text' },
-              { label: 'Mijoz ismi', key: 'clientName', placeholder: 'Sardor Rahimov', type: 'text' },
-              { label: 'Muddat', key: 'deadline', placeholder: '', type: 'date' },
-            ].map(field => (
-              <div key={field.key} style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', color: '#888', fontSize: '12px', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '8px' }}>{field.label}</label>
-                <input
-                  type={field.type}
-                  placeholder={field.placeholder}
-                  value={form[field.key as keyof typeof form] as string}
-                  onChange={e => setForm(prev => ({ ...prev, [field.key]: e.target.value }))}
-                  style={{ width: '100%', background: '#0f1117', border: '1px solid #2a2d3a', borderRadius: '10px', padding: '12px 16px', color: '#e8e8e8', fontSize: '14px', outline: 'none', boxSizing: 'border-box', colorScheme: 'dark' }}
-                />
-              </div>
-            ))}
-
-            {/* Image Upload */}
-            <div style={{ marginBottom: '24px' }}>
-              <label style={{ display: 'block', color: '#888', fontSize: '12px', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '8px' }}>Rasmlar</label>
-              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: '#0f1117', border: '2px dashed #2a2d3a', borderRadius: '10px', padding: '20px', cursor: 'pointer', color: '#555', fontSize: '14px' }}>
-                {uploading ? '⏳ Yuklanmoqda...' : '📸 Rasm qo\'shish'}
-                <input type="file" multiple accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} disabled={uploading} />
-              </label>
-
-              {previewImages.length > 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '12px' }}>
-                  {previewImages.map((url, i) => (
-                    <div key={i} style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', aspectRatio: '1' }}>
-                      <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      <button onClick={() => removeImage(i)} style={{ position: 'absolute', top: '4px', right: '4px', background: 'rgba(0,0,0,0.7)', border: 'none', color: '#fff', borderRadius: '50%', width: '22px', height: '22px', cursor: 'pointer', fontSize: '12px' }}>✕</button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button onClick={() => { setShowModal(false); setPreviewImages([]); setForm({ title: '', clientName: '', deadline: '', images: [] }); }} style={{ flex: 1, background: 'transparent', border: '1px solid #2a2d3a', color: '#888', borderRadius: '10px', padding: '12px', cursor: 'pointer', fontSize: '14px' }}>
-                Bekor qilish
-              </button>
-              <button onClick={handleSubmit} disabled={saving || uploading} style={{ flex: 1, background: '#f0c040', color: '#0f1117', border: 'none', borderRadius: '10px', padding: '12px', fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '14px', cursor: 'pointer' }}>
-                {saving ? 'Saqlanmoqda...' : 'Saqlash'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <AddModal
+          onClose={() => setShowModal(false)}
+          onSubmit={handleSubmit}
+          saving={saving}
+        />
       )}
-
-      {/* Image Preview Modal */}
       {selectedOrder && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }} onClick={() => setSelectedOrder(null)}>
-          <div style={{ background: '#1a1d27', borderRadius: '20px', padding: '24px', width: '600px', border: '1px solid #2a2d3a' }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, margin: 0 }}>{selectedOrder.title} — Rasmlar</h3>
-              <button onClick={() => setSelectedOrder(null)} style={{ background: 'transparent', border: 'none', color: '#888', fontSize: '20px', cursor: 'pointer' }}>✕</button>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
-              {selectedOrder.images.map((url, i) => (
-                <img key={i} src={url} alt="" style={{ width: '100%', borderRadius: '10px', objectFit: 'cover', aspectRatio: '4/3' }} />
-              ))}
-            </div>
-          </div>
-        </div>
+        <ImageModal order={selectedOrder} onClose={() => setSelectedOrder(null)} />
       )}
-    </div>
+
+      <div
+        className="min-h-screen bg-[#0f1117] text-[#e8e8e8]"
+        style={{ fontFamily: "'DM Sans', sans-serif" }}
+      >
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
+
+          {/* ── Header ── */}
+          <div className="flex items-start justify-between mb-6 sm:mb-10">
+            <div>
+              <p className="text-[#555] text-[11px] uppercase tracking-[2px] mb-1">Mebel CRM</p>
+              <h1
+                className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-br from-white to-[#888] bg-clip-text text-transparent"
+                style={{ fontFamily: "'Syne', sans-serif" }}
+              >
+                Buyurtmalar
+              </h1>
+            </div>
+            <button
+              onClick={() => setShowModal(true)}
+              className="bg-[#f0c040] text-[#0f1117] text-sm font-bold px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl hover:bg-[#d4a832] active:scale-95 transition whitespace-nowrap"
+              style={{ fontFamily: "'Syne', sans-serif" }}
+            >
+              + Buyurtma qo'shish
+            </button>
+          </div>
+
+          {/* ── Stats ── */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 sm:mb-8">
+            <StatCard label="Jami"       value={stats.total}       color="text-white"        />
+            <StatCard label="Yangi"      value={stats.new}         color="text-blue-400"     />
+            <StatCard label="Jarayonda"  value={stats.in_progress} color="text-amber-400"    />
+            <StatCard label="Tugallandi" value={stats.completed}   color="text-emerald-400"  />
+          </div>
+
+          {/* ── Orders ── */}
+          {loading ? (
+            <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] py-16 flex flex-col items-center gap-3 text-[#555]">
+              <div className="w-8 h-8 rounded-full border-2 border-[#f0c040] border-t-transparent animate-spin" />
+              <p className="text-sm">Yuklanmoqda...</p>
+            </div>
+          ) : orders.length === 0 ? (
+            <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] py-20 text-center text-[#555]">
+              <p className="text-5xl mb-4">📦</p>
+              <p className="text-sm">Hali buyurtma qo'shilmagan</p>
+              <button
+                onClick={() => setShowModal(true)}
+                className="mt-4 text-sm text-[#f0c040] underline underline-offset-2"
+              >
+                Birinchi buyurtmani qo'shish
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Mobile: cards */}
+              <div className="sm:hidden space-y-3">
+                {orders.map(order => (
+                  <OrderCard
+                    key={order._id}
+                    order={order}
+                    onDelete={() => handleDelete(order._id)}
+                    onImages={() => setSelectedOrder(order)}
+                  />
+                ))}
+              </div>
+
+              {/* Desktop: list rows */}
+              <div className="hidden sm:flex flex-col gap-3">
+                {orders.map(order => {
+                  const sm = STATUS_META[order.status];
+                  const overdue = isOverdue(order);
+                  return (
+                    <div
+                      key={order._id}
+                      className={`bg-[#1a1d27] rounded-2xl border px-5 py-4 flex items-center gap-4 hover:bg-[#1f2235] transition ${
+                        overdue ? 'border-red-900/50' : 'border-[#2a2d3a]'
+                      }`}
+                    >
+                      {/* Icon */}
+                      <div className="w-11 h-11 rounded-xl bg-[#14161f] flex items-center justify-center text-xl shrink-0">
+                        📦
+                      </div>
+
+                      {/* Main info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-[15px] text-white truncate">{order.title}</p>
+                        <p className="text-[#666] text-xs mt-0.5">👤 {order.clientName}</p>
+                      </div>
+
+                      {/* Images button */}
+                      {order.images?.length > 0 && (
+                        <button
+                          onClick={() => setSelectedOrder(order)}
+                          className="shrink-0 text-xs px-3 py-1.5 rounded-lg bg-blue-950 border border-blue-800/30 text-blue-400 font-semibold hover:bg-blue-900 transition"
+                        >
+                          🖼 {order.images.length} ta rasm
+                        </button>
+                      )}
+
+                      {/* Deadline */}
+                      <div className="shrink-0 text-right hidden md:block">
+                        <p className="text-[#555] text-[11px] uppercase tracking-wide mb-0.5">Muddat</p>
+                        <p className={`text-xs font-medium ${overdue ? 'text-red-400' : 'text-[#888]'}`}>
+                          {overdue ? '⚠ ' : ''}{fmtDate(order.deadline)}
+                        </p>
+                      </div>
+
+                      {/* Status badge */}
+                      <span className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold ${sm.badge}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${sm.dot}`} />
+                        {sm.label}
+                      </span>
+
+                      {/* Delete */}
+                      <button
+                        onClick={() => handleDelete(order._id)}
+                        className="shrink-0 text-xs px-3 py-1.5 rounded-lg border border-red-900/40 text-red-400 hover:bg-red-950/40 transition"
+                      >
+                        O'chirish
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+        </div>
+      </div>
+    </>
   );
 }
