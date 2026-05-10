@@ -53,7 +53,16 @@ export default function TasksPage() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchAll(); }, []);
+useEffect(() => {
+  fetchAll();
+
+  // Real-time: har 5 sekundda avtomatik yangilanish
+  const eventSource = new EventSource('/api/events');
+  eventSource.onmessage = () => {
+    fetchAll();
+  };
+  return () => eventSource.close();
+}, []);
 
   const handleSubmit = async () => {
     if (!form.title || !form.order || !form.worker || !form.deadline) return;

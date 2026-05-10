@@ -69,12 +69,15 @@ export default function DashboardPage() {
     }
   };
 
-  useEffect(() => {
-    fetchData();
-    // Har 30 sekundda yangilanadi
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
-  }, []);
+useEffect(() => {
+  fetchData();
+
+  const eventSource = new EventSource('/api/events');
+  eventSource.onmessage = () => {
+    fetchData(); // fetchAll emas, fetchData!
+  };
+  return () => eventSource.close();
+}, []);
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: '#0f1117', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', fontFamily: "'DM Sans', sans-serif" }}>

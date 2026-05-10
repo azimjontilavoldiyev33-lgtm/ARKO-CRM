@@ -48,7 +48,15 @@ export default function WorkerProfilePage() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, [id]);
+useEffect(() => {
+  fetchData();
+
+  const eventSource = new EventSource('/api/events');
+  eventSource.onmessage = () => {
+    fetchData();
+  };
+  return () => eventSource.close();
+}, []);
 
   const handleRating = async (taskId: string) => {
     await fetch(`/api/tasks/${taskId}`, {
