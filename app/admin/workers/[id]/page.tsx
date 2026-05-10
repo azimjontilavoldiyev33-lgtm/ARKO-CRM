@@ -12,6 +12,7 @@ interface Task {
   completedAt?: string;
   order: { title: string };
   rating?: number;
+  completionPhoto?: string;
 }
 
 interface Worker {
@@ -36,6 +37,7 @@ export default function WorkerProfilePage() {
   const [loading, setLoading] = useState(true);
   const [ratingTask, setRatingTask] = useState<string | null>(null);
   const [rating, setRating] = useState(5);
+  const [photoTask, setPhotoTask] = useState<Task | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -48,15 +50,12 @@ export default function WorkerProfilePage() {
     setLoading(false);
   };
 
-useEffect(() => {
-  fetchData();
-
-  const eventSource = new EventSource('/api/events');
-  eventSource.onmessage = () => {
+  useEffect(() => {
     fetchData();
-  };
-  return () => eventSource.close();
-}, []);
+    const eventSource = new EventSource('/api/events');
+    eventSource.onmessage = () => { fetchData(); };
+    return () => eventSource.close();
+  }, []);
 
   const handleRating = async (taskId: string) => {
     await fetch(`/api/tasks/${taskId}`, {
@@ -81,13 +80,14 @@ useEffect(() => {
   );
 
   const completedTasks = tasks.filter(t => t.status === 'completed');
-  const pendingTasks = tasks.filter(t => t.status === 'pending');
   const inProgressTasks = tasks.filter(t => t.status === 'in_progress');
   const overdueTasks = tasks.filter(t => new Date(t.deadline) < new Date() && t.status !== 'completed');
   const ratedTasks = completedTasks.filter(t => t.rating);
   const avgRating = ratedTasks.length > 0
     ? (ratedTasks.reduce((sum, t) => sum + (t.rating || 0), 0) / ratedTasks.length).toFixed(1)
     : '—';
+
+  const botToken = process.env.NEXT_PUBLIC_BOT_TOKEN;
 
   return (
     <div style={{ minHeight: '100vh', background: '#0f1117', color: '#e8e8e8', fontFamily: "'DM Sans', sans-serif", padding: '32px' }}>
@@ -153,7 +153,7 @@ useEffect(() => {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#14161f' }}>
-                {['Vazifa', 'Buyurtma', 'Muddat', 'Boshlandi', 'Tugadi', 'Status', 'Baho', ''].map((h, i) => (
+                {['Vazifa', 'Buyurtma', 'Muddat', 'Boshlandi', 'Tugadi', 'Status', 'Baho', 'Rasm'].map((h, i) => (
                   <th key={i} style={{ padding: '12px 20px', textAlign: 'left', color: '#555', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 500 }}>{h}</th>
                 ))}
               </tr>
@@ -195,6 +195,16 @@ useEffect(() => {
                         </button>
                       ) : '—'}
                     </td>
+                    <td style={{ padding: '14px 20px' }}>
+                      {task.completionPhoto ? (
+                        <button
+                          onClick={() => setPhotoTask(task)}
+                          style={{ background: '#1a2a3a', border: 'none', color: '#60a5fa', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', cursor: 'pointer' }}
+                        >
+                          📸 Ko'rish
+                        </button>
+                      ) : '—'}
+                    </td>
                   </tr>
                 );
               })}
@@ -227,6 +237,23 @@ useEffect(() => {
                 Saqlash
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Photo Modal */}
+      {photoTask && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }} onClick={() => setPhotoTask(null)}>
+          <div style={{ background: '#1a1d27', borderRadius: '20px', padding: '24px', width: '500px', border: '1px solid #2a2d3a' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, margin: 0 }}>{photoTask.title} — Ish rasmi</h3>
+              <button onClick={() => setPhotoTask(null)} style={{ background: 'transparent', border: 'none', color: '#888', fontSize: '20px', cursor: 'pointer' }}>✕</button>
+            </div>
+            <img
+              src={`https://api.telegram.org/file/bot${botToken}/${photoTask.completionPhoto}`}
+              alt="Ish rasmi"
+              style={{ width: '100%', borderRadius: '12px', objectFit: 'cover' }}
+            />
           </div>
         </div>
       )}

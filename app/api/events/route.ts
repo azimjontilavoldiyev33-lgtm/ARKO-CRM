@@ -4,7 +4,7 @@ export async function GET() {
       const interval = setInterval(async () => {
         const data = `data: ${JSON.stringify({ time: Date.now() })}\n\n`;
         controller.enqueue(new TextEncoder().encode(data));
-      }, 5000);
+      }, 30000);
 
       return () => clearInterval(interval);
     },
