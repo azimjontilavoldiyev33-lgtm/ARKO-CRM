@@ -53,6 +53,155 @@ function Skeleton() {
   );
 }
 
+// ─── Edit Worker Modal ────────────────────────────────────────────────────────
+function EditWorkerModal({
+  worker,
+  onClose,
+  onSave,
+}: {
+  worker: Worker;
+  onClose: () => void;
+  onSave: (data: Partial<Worker>) => Promise<void>;
+}) {
+  const [form, setForm] = useState({
+    fullName: worker.fullName,
+    phoneNumber: worker.phoneNumber,
+    position: worker.position ?? '',
+  });
+  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validate = () => {
+    const e: Record<string, string> = {};
+    if (!form.fullName.trim()) e.fullName = 'Ism kiritish shart';
+    if (!form.phoneNumber.trim()) e.phoneNumber = 'Telefon raqam kiritish shart';
+    return e;
+  };
+
+  const handleSubmit = async () => {
+    const e = validate();
+    if (Object.keys(e).length) { setErrors(e); return; }
+    setSaving(true);
+    await onSave({
+      fullName: form.fullName.trim(),
+      phoneNumber: form.phoneNumber.trim(),
+      position: form.position.trim() || undefined,
+    });
+    setSaving(false);
+  };
+
+  const Field = ({
+    label,
+    field,
+    placeholder,
+    icon,
+  }: {
+    label: string;
+    field: keyof typeof form;
+    placeholder: string;
+    icon: string;
+  }) => (
+    <div className="space-y-1.5">
+      <label className="text-[11px] text-[#555] uppercase tracking-widest font-medium">
+        {label}
+      </label>
+      <div className={`flex items-center gap-3 bg-[#14161f] border rounded-xl px-4 py-3 transition-colors ${
+        errors[field] ? 'border-red-500/50' : 'border-[#2a2d3a] focus-within:border-[#f0c040]/50'
+      }`}>
+        <span className="text-base shrink-0">{icon}</span>
+        <input
+          type="text"
+          value={form[field]}
+          onChange={(e) => {
+            setForm(prev => ({ ...prev, [field]: e.target.value }));
+            if (errors[field]) setErrors(prev => { const n = { ...prev }; delete n[field]; return n; });
+          }}
+          placeholder={placeholder}
+          className="flex-1 bg-transparent text-sm text-white placeholder-[#444] outline-none"
+        />
+      </div>
+      {errors[field] && (
+        <p className="text-xs text-red-400 pl-1">{errors[field]}</p>
+      )}
+    </div>
+  );
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/80 z-50 flex items-end sm:items-center justify-center p-4"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="bg-[#1a1d27] rounded-2xl w-full max-w-md border border-[#2a2d3a] overflow-hidden animate-slide-up">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-[#2a2d3a]">
+          <div>
+            <h2
+              className="text-base font-bold text-white"
+              style={{ fontFamily: "'Syne', sans-serif" }}
+            >
+              Ishchi ma'lumotlarini tahrirlash
+            </h2>
+            <p className="text-[#555] text-xs mt-0.5">O'zgarishlar darhol saqlanadi</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg bg-[#2a2d3a] text-[#888] flex items-center justify-center hover:text-white transition text-sm"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Avatar preview */}
+        <div className="px-6 pt-5 flex items-center gap-4">
+          <div
+            className="w-12 h-12 rounded-xl bg-[#f0c040] flex items-center justify-center text-[#0f1117] text-lg font-extrabold shrink-0"
+            style={{ fontFamily: "'Syne', sans-serif" }}
+          >
+            {form.fullName.split(' ').map(n => n[0]).slice(0, 2).join('') || '?'}
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-white leading-tight">{form.fullName || 'Ism kiritilmagan'}</p>
+            <p className="text-xs text-[#555] mt-0.5">{form.position || 'Lavozim belgilanmagan'}</p>
+          </div>
+        </div>
+
+        {/* Form */}
+        <div className="px-6 py-5 space-y-4">
+          <Field label="To'liq ism" field="fullName" placeholder="Masalan: Alisher Karimov" icon="👤" />
+          <Field label="Telefon raqam" field="phoneNumber" placeholder="998901234567" icon="📞" />
+          <Field label="Lavozim (ixtiyoriy)" field="position" placeholder="Masalan: Elektrik" icon="💼" />
+        </div>
+
+        {/* Actions */}
+        <div className="px-6 pb-6 grid grid-cols-2 gap-3">
+          <button
+            onClick={onClose}
+            disabled={saving}
+            className="py-3 rounded-xl border border-[#2a2d3a] text-[#888] text-sm font-medium hover:bg-[#2a2d3a] transition disabled:opacity-50"
+          >
+            Bekor qilish
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={saving}
+            className="py-3 rounded-xl bg-[#f0c040] text-[#0f1117] text-sm font-bold hover:bg-[#d4a832] transition disabled:opacity-60 flex items-center justify-center gap-2"
+            style={{ fontFamily: "'Syne', sans-serif" }}
+          >
+            {saving ? (
+              <>
+                <span className="w-4 h-4 rounded-full border-2 border-[#0f1117]/30 border-t-[#0f1117] animate-spin" />
+                Saqlanmoqda...
+              </>
+            ) : (
+              'Saqlash'
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RatingModal({
   onClose,
   onSave,
@@ -71,10 +220,7 @@ function RatingModal({
     >
       <div className="bg-[#1a1d27] rounded-2xl p-7 w-full max-w-sm border border-[#2a2d3a] text-center animate-slide-up">
         <div className="w-8 h-1 bg-[#2a2d3a] rounded-full mx-auto mb-5 sm:hidden" />
-        <h2
-          className="text-lg font-bold text-white mb-1"
-          style={{ fontFamily: "'Syne', sans-serif" }}
-        >
+        <h2 className="text-lg font-bold text-white mb-1" style={{ fontFamily: "'Syne', sans-serif" }}>
           Ishni baholang
         </h2>
         <p className="text-[#555] text-xs mb-6">Usta bajargan ishning sifatini belgilang</p>
@@ -126,10 +272,7 @@ function PhotoModal({ task, onClose }: { task: Task; onClose: () => void }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
-          <h3
-            className="text-base font-bold text-white"
-            style={{ fontFamily: "'Syne', sans-serif" }}
-          >
+          <h3 className="text-base font-bold text-white" style={{ fontFamily: "'Syne', sans-serif" }}>
             {task.title}
           </h3>
           <button
@@ -150,7 +293,6 @@ function PhotoModal({ task, onClose }: { task: Task; onClose: () => void }) {
   );
 }
 
-// Mobile: task card
 function TaskCard({
   task,
   onRate,
@@ -165,7 +307,6 @@ function TaskCard({
 
   return (
     <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] p-4 space-y-3">
-      {/* Title + status */}
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-white leading-snug truncate">{task.title}</p>
@@ -177,7 +318,6 @@ function TaskCard({
         </span>
       </div>
 
-      {/* Meta grid */}
       <div className="grid grid-cols-3 gap-2 text-center">
         {[
           { label: 'Muddat', val: fmtDate(task.deadline), danger: overdue },
@@ -193,7 +333,6 @@ function TaskCard({
         ))}
       </div>
 
-      {/* Rating + photo */}
       <div className="flex items-center gap-2">
         {task.rating ? (
           <span className="text-sm text-amber-400">{'⭐'.repeat(task.rating)}</span>
@@ -228,6 +367,7 @@ export default function WorkerProfilePage() {
   const [loading, setLoading] = useState(true);
   const [ratingTask, setRatingTask] = useState<string | null>(null);
   const [photoTask, setPhotoTask] = useState<Task | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
@@ -264,16 +404,32 @@ export default function WorkerProfilePage() {
     fetchData();
   };
 
+  const handleEditSave = async (data: Partial<Worker>) => {
+    const res = await fetch(`/api/workers/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (res.ok) {
+      setEditOpen(false);
+      showToast("Ma'lumotlar yangilandi ✓");
+      fetchData();
+    } else {
+      showToast('Xatolik yuz berdi ✗');
+    }
+  };
+
   if (loading) return <Skeleton />;
 
   if (!worker) return (
-    <div className="min-h-screen bg-[#0f1117] flex items-center justify-center text-[#555]"
-      style={{ fontFamily: "'DM Sans', sans-serif" }}>
+    <div
+      className="min-h-screen bg-[#0f1117] flex items-center justify-center text-[#555]"
+      style={{ fontFamily: "'DM Sans', sans-serif" }}
+    >
       Usta topilmadi
     </div>
   );
 
-  // ── Derived stats ──
   const completedTasks  = tasks.filter(t => t.status === 'completed');
   const inProgressTasks = tasks.filter(t => t.status === 'in_progress');
   const overdueTasks    = tasks.filter(t => isOverdue(t));
@@ -295,6 +451,13 @@ export default function WorkerProfilePage() {
       `}</style>
 
       {/* Modals */}
+      {editOpen && worker && (
+        <EditWorkerModal
+          worker={worker}
+          onClose={() => setEditOpen(false)}
+          onSave={handleEditSave}
+        />
+      )}
       {ratingTask && (
         <RatingModal
           onClose={() => setRatingTask(null)}
@@ -325,6 +488,13 @@ export default function WorkerProfilePage() {
             ←
           </a>
           <span className="flex-1 font-semibold text-white text-sm truncate">{worker.fullName}</span>
+          <button
+            onClick={() => setEditOpen(true)}
+            className="w-9 h-9 rounded-xl bg-[#1a1d27] flex items-center justify-center text-[#888] hover:text-[#f0c040] transition border border-[#2a2d3a]"
+            title="Tahrirlash"
+          >
+            ✏️
+          </button>
           {worker.telegramChatId && (
             <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-950 text-emerald-400 font-semibold border border-emerald-800/30">
               ✓ TG
@@ -344,7 +514,6 @@ export default function WorkerProfilePage() {
 
           {/* ── Hero card ── */}
           <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] overflow-hidden">
-            {/* Amber top stripe */}
             <div className="h-1 w-full bg-gradient-to-r from-[#f0c040] via-[#e8a045] to-[#f0c040]" />
 
             <div className="p-5 sm:p-7 flex flex-col sm:flex-row sm:items-center gap-5">
@@ -375,8 +544,8 @@ export default function WorkerProfilePage() {
                 </div>
               </div>
 
-              {/* Telegram badge */}
-              <div className="self-start sm:self-auto shrink-0">
+              {/* Right side: Telegram badge + Edit button */}
+              <div className="self-start sm:self-auto shrink-0 flex items-center gap-3">
                 {worker.telegramChatId ? (
                   <span className="inline-flex items-center gap-1.5 bg-emerald-950 text-emerald-400 border border-emerald-800/30 rounded-xl px-3.5 py-2 text-xs font-semibold">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
@@ -388,6 +557,14 @@ export default function WorkerProfilePage() {
                     Telegram ulanmagan
                   </span>
                 )}
+
+                {/* Edit button (desktop) */}
+                <button
+                  onClick={() => setEditOpen(true)}
+                  className="hidden sm:inline-flex items-center gap-2 bg-[#14161f] hover:bg-[#2a2d3a] border border-[#2a2d3a] hover:border-[#f0c040]/40 text-[#888] hover:text-[#f0c040] rounded-xl px-4 py-2 text-xs font-semibold transition-all duration-200"
+                >
+                  ✏️ Tahrirlash
+                </button>
               </div>
             </div>
           </div>
@@ -395,11 +572,11 @@ export default function WorkerProfilePage() {
           {/* ── Stats grid ── */}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             {[
-              { label: 'Jami vazifa',  value: tasks.length,            color: 'text-white'        },
-              { label: 'Bajarilgan',   value: completedTasks.length,   color: 'text-emerald-400'  },
-              { label: 'Jarayonda',   value: inProgressTasks.length,  color: 'text-amber-400'    },
-              { label: 'Kechikkan',   value: overdueTasks.length,     color: 'text-red-400'      },
-              { label: "O'rtacha baho", value: avgRating,             color: 'text-amber-400', prefix: '⭐ ' },
+              { label: 'Jami vazifa',    value: tasks.length,           color: 'text-white'       },
+              { label: 'Bajarilgan',     value: completedTasks.length,  color: 'text-emerald-400' },
+              { label: 'Jarayonda',      value: inProgressTasks.length, color: 'text-amber-400'   },
+              { label: 'Kechikkan',      value: overdueTasks.length,    color: 'text-red-400'     },
+              { label: "O'rtacha baho",  value: avgRating,              color: 'text-amber-400', prefix: '⭐ ' },
             ].map(({ label, value, color, prefix }) => (
               <div
                 key={label}
@@ -419,10 +596,7 @@ export default function WorkerProfilePage() {
           {/* ── Tasks ── */}
           <div>
             <div className="flex items-center justify-between mb-3 px-0.5">
-              <p
-                className="text-white font-bold"
-                style={{ fontFamily: "'Syne', sans-serif" }}
-              >
+              <p className="text-white font-bold" style={{ fontFamily: "'Syne', sans-serif" }}>
                 Barcha vazifalar
                 <span className="text-[#555] font-normal text-sm ml-2">({tasks.length})</span>
               </p>
@@ -435,7 +609,7 @@ export default function WorkerProfilePage() {
               </div>
             ) : (
               <>
-                {/* ── Mobile: cards ── */}
+                {/* Mobile: cards */}
                 <div className="sm:hidden space-y-3">
                   {tasks.map((task) => (
                     <TaskCard
@@ -447,7 +621,7 @@ export default function WorkerProfilePage() {
                   ))}
                 </div>
 
-                {/* ── Desktop: table ── */}
+                {/* Desktop: table */}
                 <div className="hidden sm:block bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] overflow-hidden">
                   <table className="w-full border-collapse">
                     <thead>
