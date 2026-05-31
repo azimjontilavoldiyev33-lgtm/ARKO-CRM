@@ -5,6 +5,7 @@ export interface IWorker extends Document {
   phoneNumber: string;
   telegramChatId?: string;
   position?: string;
+  code?: string;        // ← yangi
   createdAt?: Date;
 }
 
@@ -25,6 +26,11 @@ const WorkerSchema = new Schema<IWorker>({
   position: {
     type: String,
     default: null,
+  },
+  code: {                    // ← yangi
+    type: String,
+    unique: true,
+    sparse: true,            // null bo'lsa unique ishlamaydi
   },
   createdAt: {
     type: Date,

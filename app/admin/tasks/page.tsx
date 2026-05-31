@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { button } from 'telegraf/markup';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Worker {
@@ -17,8 +18,10 @@ interface Order {
 interface Task {
   _id: string;
   title: string;
-  order: { _id: string; title: string };
+  description?: string;
+  order?: { _id: string; title: string };
   worker: { _id: string; fullName: string };
+  department?: string;
   deadline: string;
   status: 'pending' | 'in_progress' | 'completed';
   startedAt?: string;
@@ -26,7 +29,14 @@ interface Task {
   createdAt: string;
 }
 
-type FormState = { title: string; order: string; worker: string; deadline: string };
+type FormState = {
+  title: string;
+  order: string;
+  worker: string;
+  deadline: string;
+  department: string;
+  description: string;
+};
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const STATUS_META = {
@@ -35,10 +45,22 @@ const STATUS_META = {
   completed:   { label: 'Tugallandi', badge: 'bg-emerald-950 text-emerald-400', dot: 'bg-emerald-400' },
 } as const;
 
-const fmtDate  = (d?: string) => d ? new Date(d).toLocaleDateString('uz-UZ') : '—';
-const isOverdue = (t: Task)   => new Date(t.deadline) < new Date() && t.status !== 'completed';
+// Bo'limlar ro'yxati — kerak bo'lsa o'zgartiring
 
-const EMPTY_FORM: FormState = { title: '', order: '', worker: '', deadline: '' };
+const DEPARTMENTS = [
+  { label: "Yig'ish sexi",  slug: 'yigish-sexi'  },
+  { label: "Bo'yash sexi",  slug: 'boyash-sexi'  },
+  { label: "Kesish sexi",   slug: 'kesish-sexi'  },
+  { label: "Ombor",         slug: 'ombor'         },
+  { label: "Boshqa",        slug: 'boshqa'        },
+];
+
+const fmtDate   = (d?: string) => d ? new Date(d).toLocaleDateString('uz-UZ') : '—';
+const isOverdue = (t: Task)    => new Date(t.deadline) < new Date() && t.status !== 'completed';
+
+const EMPTY_FORM: FormState = {
+  title: '', order: '', worker: '', deadline: '', department: '', description: '',
+};
 
 const inputCls =
   'w-full bg-[#0f1117] border border-[#2a2d3a] rounded-xl px-4 py-3 text-sm text-[#e8e8e8] outline-none focus:border-[#f0c040] transition placeholder-[#444] [color-scheme:dark]';
@@ -71,12 +93,13 @@ function TaskCard({ task, onDelete }: { task: Task; onDelete: () => void }) {
 
   return (
     <div className={`bg-[#1a1d27] rounded-2xl border p-4 space-y-3 ${overdue ? 'border-red-900/50' : 'border-[#2a2d3a]'}`}>
-      {/* Title + status */}
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 rounded-xl bg-[#14161f] flex items-center justify-center text-lg shrink-0">📋</div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-white leading-snug">{task.title}</p>
-          <p className="text-xs text-[#555] mt-0.5 truncate">📦 {task.order?.title}</p>
+          {task.description && <p className="text-xs text-[#666] mt-0.5 line-clamp-1">{task.description}</p>}
+          {task.order?.title && <p className="text-xs text-[#555] mt-0.5 truncate">📦 {task.order.title}</p>}
+          {task.department && <p className="text-xs text-[#555] mt-0.5">🏢 {task.department}</p>}
         </div>
         <span className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold ${meta.badge}`}>
           <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
@@ -84,7 +107,6 @@ function TaskCard({ task, onDelete }: { task: Task; onDelete: () => void }) {
         </span>
       </div>
 
-      {/* Meta grid */}
       <div className="grid grid-cols-2 gap-2">
         <div className="bg-[#14161f] rounded-xl p-2.5">
           <p className="text-[10px] text-[#555] uppercase tracking-wide mb-0.5">Usta</p>
@@ -110,7 +132,6 @@ function TaskCard({ task, onDelete }: { task: Task; onDelete: () => void }) {
         )}
       </div>
 
-      {/* Delete */}
       <button
         onClick={onDelete}
         className="w-full py-2 rounded-xl border border-red-900/40 text-red-400 text-xs font-semibold hover:bg-red-950/40 transition"
@@ -129,10 +150,11 @@ function AddModal({
 }) {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const set = (k: keyof FormState) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
       setForm(prev => ({ ...prev, [k]: e.target.value }));
 
-  const valid = form.title && form.order && form.worker && form.deadline;
+  // Order yoki Department — bittasi bo'lsa yetarli
+  const valid = form.title && form.worker && form.deadline && (form.order || form.department);
 
   return (
     <div
@@ -140,7 +162,6 @@ function AddModal({
       onClick={e => e.target === e.currentTarget && onClose()}
     >
       <div className="bg-[#1a1d27] rounded-t-3xl sm:rounded-2xl border border-[#2a2d3a] w-full sm:max-w-md p-6 pb-10 sm:pb-6 max-h-[92vh] overflow-y-auto animate-slide-up">
-        {/* Drag handle */}
         <div className="w-8 h-1 bg-[#2a2d3a] rounded-full mx-auto mb-5 sm:hidden" />
 
         <h2 className="text-lg font-extrabold text-white mb-5" style={{ fontFamily: "'Syne', sans-serif" }}>
@@ -148,8 +169,9 @@ function AddModal({
         </h2>
 
         <div className="space-y-3.5">
+          {/* Vazifa nomi */}
           <div>
-            <label className="block text-[#888] text-[11px] uppercase tracking-widest mb-1.5">Vazifa nomi</label>
+            <label className="block text-[#888] text-[11px] uppercase tracking-widest mb-1.5">Vazifa nomi *</label>
             <input
               type="text"
               placeholder="Kesish, Yig'ish, Bo'yash..."
@@ -158,15 +180,40 @@ function AddModal({
               className={inputCls}
             />
           </div>
+
+          {/* Tavsif */}
           <div>
-            <label className="block text-[#888] text-[11px] uppercase tracking-widest mb-1.5">Buyurtma</label>
+            <label className="block text-[#888] text-[11px] uppercase tracking-widest mb-1.5">Tavsif (ixtiyoriy)</label>
+            <textarea
+              placeholder="Vazifa haqida qo'shimcha ma'lumot..."
+              value={form.description}
+              onChange={set('description')}
+              rows={2}
+              className={inputCls + ' resize-none'}
+            />
+          </div>
+
+          {/* Bo'lim */}
+          <div>
+            <label className="block text-[#888] text-[11px] uppercase tracking-widest mb-1.5">Bo'lim / Xona</label>
+            <select value={form.department} onChange={set('department')} className={inputCls}>
+              <option value="">Bo'lim tanlang (ixtiyoriy)</option>
+              {DEPARTMENTS.map(d => <option key={d.slug} value={d.label}>{d.label}</option>)}
+            </select>
+          </div>
+
+          {/* Buyurtma */}
+          <div>
+            <label className="block text-[#888] text-[11px] uppercase tracking-widest mb-1.5">Buyurtma (ixtiyoriy)</label>
             <select value={form.order} onChange={set('order')} className={inputCls}>
               <option value="">Buyurtma tanlang</option>
               {orders.map(o => <option key={o._id} value={o._id}>{o.title}</option>)}
             </select>
           </div>
+
+          {/* Usta */}
           <div>
-            <label className="block text-[#888] text-[11px] uppercase tracking-widest mb-1.5">Usta</label>
+            <label className="block text-[#888] text-[11px] uppercase tracking-widest mb-1.5">Usta *</label>
             <select value={form.worker} onChange={set('worker')} className={inputCls}>
               <option value="">Usta tanlang</option>
               {workers.map(w => (
@@ -176,10 +223,13 @@ function AddModal({
               ))}
             </select>
           </div>
+
+          {/* Muddat */}
           <div>
-            <label className="block text-[#888] text-[11px] uppercase tracking-widest mb-1.5">Muddat</label>
+            <label className="block text-[#888] text-[11px] uppercase tracking-widest mb-1.5">Muddat *</label>
             <input type="date" value={form.deadline} onChange={set('deadline')} className={inputCls} />
           </div>
+
           <div className="bg-emerald-950/50 border border-emerald-800/30 rounded-xl px-4 py-3">
             <p className="text-emerald-400 text-xs">
               📲 Vazifa yaratilganda usta Telegramga avtomatik xabar oladi
@@ -217,6 +267,7 @@ export default function TasksPage() {
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving]       = useState(false);
   const [toast, setToast]         = useState<string | null>(null);
+  const [filterDept, setFilterDept] = useState('');
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 2500); };
 
@@ -241,10 +292,19 @@ export default function TasksPage() {
 
   const handleSubmit = async (form: FormState) => {
     setSaving(true);
+    const body: Record<string, string> = {
+      title: form.title,
+      worker: form.worker,
+      deadline: form.deadline,
+    };
+    if (form.order) body.order = form.order;
+    if (form.department) body.department = form.department;
+    if (form.description) body.description = form.description;
+
     await fetch('/api/tasks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
+      body: JSON.stringify(body),
     });
     setSaving(false);
     setShowModal(false);
@@ -258,6 +318,11 @@ export default function TasksPage() {
     showToast("Vazifa o'chirildi");
     fetchAll();
   };
+
+  // Filter by department
+  const filteredTasks = filterDept
+    ? tasks.filter(t => t.department === filterDept)
+    : tasks;
 
   const stats = {
     total:       tasks.length,
@@ -318,13 +383,50 @@ export default function TasksPage() {
             <StatCard label="Tugallandi" value={stats.completed}   color="text-emerald-400" />
           </div>
 
+          {/* ── Department Filter ── */}
+          <div className="flex gap-2 flex-wrap mb-5">
+            <button
+              onClick={() => setFilterDept('')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                filterDept === '' ? 'bg-[#f0c040] text-[#0f1117]' : 'bg-[#1a1d27] border border-[#2a2d3a] text-[#888] hover:text-white'
+              }`}
+            >
+              Barchasi
+            </button>
+            {DEPARTMENTS.map(d => (
+  <div key={d.slug} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+    <button
+      onClick={() => setFilterDept(d.label)}
+      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+        filterDept === d.label
+          ? 'bg-[#f0c040] text-[#0f1117]'
+          : 'bg-[#1a1d27] border border-[#2a2d3a] text-[#888] hover:text-white'
+      }`}
+    >
+      {d.label}
+    </button>
+    <a
+      href={`/monitor/${d.slug}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      title="Monitorda ko'rish"
+      className="text-[#444] hover:text-[#f0c040] transition text-sm"
+    >
+      🖥
+    </a>
+  </div>
+))}
+
+        
+          </div>
+
           {/* ── Tasks ── */}
           {loading ? (
             <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] py-16 flex flex-col items-center gap-3 text-[#555]">
               <div className="w-8 h-8 rounded-full border-2 border-[#f0c040] border-t-transparent animate-spin" />
               <p className="text-sm">Yuklanmoqda...</p>
             </div>
-          ) : tasks.length === 0 ? (
+          ) : filteredTasks.length === 0 ? (
             <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] py-20 text-center text-[#555]">
               <p className="text-5xl mb-4">📋</p>
               <p className="text-sm">Hali vazifa qo'shilmagan</p>
@@ -334,16 +436,16 @@ export default function TasksPage() {
             </div>
           ) : (
             <>
-              {/* ── Mobile cards (< sm) ── */}
+              {/* ── Mobile cards ── */}
               <div className="sm:hidden space-y-3">
-                {tasks.map(task => (
+                {filteredTasks.map(task => (
                   <TaskCard key={task._id} task={task} onDelete={() => handleDelete(task._id)} />
                 ))}
               </div>
 
-              {/* ── Desktop rows (sm+) ── */}
+              {/* ── Desktop rows ── */}
               <div className="hidden sm:flex flex-col gap-3">
-                {tasks.map(task => {
+                {filteredTasks.map(task => {
                   const meta    = STATUS_META[task.status];
                   const overdue = isOverdue(task);
                   return (
@@ -353,24 +455,25 @@ export default function TasksPage() {
                         overdue ? 'border-red-900/50' : 'border-[#2a2d3a]'
                       }`}
                     >
-                      {/* Icon */}
                       <div className="w-10 sm:w-11 h-10 sm:h-11 rounded-xl bg-[#14161f] flex items-center justify-center text-xl shrink-0">
                         📋
                       </div>
 
-                      {/* Info */}
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm sm:text-[15px] text-white truncate">{task.title}</p>
                         <div className="flex flex-wrap gap-x-3 sm:gap-x-4 gap-y-0.5 mt-1">
-                          <span className="text-[#666] text-xs truncate max-w-[120px] sm:max-w-none">📦 {task.order?.title}</span>
+                          {task.department && <span className="text-[#666] text-xs">🏢 {task.department}</span>}
+                          {task.order?.title && <span className="text-[#666] text-xs truncate max-w-[120px] sm:max-w-none">📦 {task.order.title}</span>}
                           <span className="text-[#666] text-xs">👷 {task.worker?.fullName}</span>
                           <span className={`text-xs ${overdue ? 'text-red-400 font-medium' : 'text-[#666]'}`}>
                             ⏰ {overdue ? '⚠ ' : ''}{fmtDate(task.deadline)}
                           </span>
                         </div>
+                        {task.description && (
+                          <p className="text-[#555] text-xs mt-1 line-clamp-1">{task.description}</p>
+                        )}
                       </div>
 
-                      {/* Timeline — lg only */}
                       {task.startedAt && (
                         <div className="text-right shrink-0 hidden lg:block">
                           <p className="text-[#555] text-xs">Boshlandi: {fmtDate(task.startedAt)}</p>
@@ -380,13 +483,11 @@ export default function TasksPage() {
                         </div>
                       )}
 
-                      {/* Status */}
                       <span className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold ${meta.badge}`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
                         <span className="hidden sm:inline">{meta.label}</span>
                       </span>
 
-                      {/* Delete */}
                       <button
                         onClick={() => handleDelete(task._id)}
                         className="shrink-0 text-xs px-2.5 sm:px-3 py-1.5 rounded-lg border border-red-900/40 text-red-400 hover:bg-red-950/40 transition"
@@ -399,7 +500,6 @@ export default function TasksPage() {
               </div>
             </>
           )}
-
         </div>
       </div>
     </>

@@ -2,6 +2,15 @@ import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Worker from '@/models/Worker';
 
+// 4 xonali unique kod generatsiya
+async function generateCode(): Promise<string> {
+  while (true) {
+    const code = Math.floor(1000 + Math.random() * 9000).toString();
+    const exists = await Worker.findOne({ code });
+    if (!exists) return code;
+  }
+}
+
 export async function GET() {
   await connectDB();
   const workers = await Worker.find().sort({ createdAt: -1 });
@@ -12,7 +21,8 @@ export async function POST(req: Request) {
   await connectDB();
   const body = await req.json();
   try {
-    const worker = await Worker.create(body);
+    const code = await generateCode();
+    const worker = await Worker.create({ ...body, code });
     return NextResponse.json(worker, { status: 201 });
   } catch (err: any) {
     if (err.code === 11000) {
