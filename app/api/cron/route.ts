@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Task from '@/models/Task';
-import { notifyAll } from '../sse/route';
+import { notifyAll } from '@/lib/sse'; // ← to'g'ri
 
 export async function GET() {
   try {
