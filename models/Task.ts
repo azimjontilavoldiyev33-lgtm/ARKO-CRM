@@ -14,6 +14,8 @@ export interface ITask extends Document {
   completionPhoto?: string;
   rating?: number;
   createdAt: Date;
+  pipelineId?: Types.ObjectId;
+stepIndex?: number;
 }
 
 const TaskSchema = new Schema<ITask>({
@@ -34,6 +36,8 @@ const TaskSchema = new Schema<ITask>({
   completionPhoto: { type: String },
   rating: { type: Number },
   createdAt: { type: Date, default: Date.now },
+  pipelineId: { type: Schema.Types.ObjectId, ref: 'Pipeline' },
+stepIndex:  { type: Number },
 });
 
 const Task = mongoose.models.Task || mongoose.model<ITask>('Task', TaskSchema);

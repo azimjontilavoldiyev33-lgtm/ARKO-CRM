@@ -10,6 +10,7 @@ const navItems = [
   { href: '/admin/orders',  label: 'Buyurtmalar',  icon: '📦' },
   { href: '/admin/tasks',   label: 'Vazifalar',    icon: '📋' },
   { href: '/admin/salary',  label: 'Oylik hisob',  icon: '💰' },
+    { href: '/admin/pipelines', label: 'Ish zanjiri',  icon: '🔗' },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
