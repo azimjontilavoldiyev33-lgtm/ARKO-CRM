@@ -10,6 +10,7 @@ interface Worker {
   telegramChatId?: string;
   position?: string;
   createdAt: string;
+  salary?: number;
 }
 
 const AVATAR_COLORS = [
@@ -25,7 +26,7 @@ export default function WorkersPage() {
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ fullName: '', phoneNumber: '', position: '' });
+const [form, setForm] = useState({ fullName: '', phoneNumber: '', position: '', salary: '' });
   const [saving, setSaving] = useState(false);
 
   const fetchWorkers = async () => {
@@ -44,12 +45,13 @@ export default function WorkersPage() {
     await fetch('/api/workers', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...form,
-        phoneNumber: form.phoneNumber.replace('+', '').replace(/\s/g, ''),
-      }),
+body: JSON.stringify({
+  ...form,
+  salary: form.salary ? +form.salary : 0,
+  phoneNumber: form.phoneNumber.replace('+', '').replace(/\s/g, ''),
+}),
     });
-    setForm({ fullName: '', phoneNumber: '', position: '' });
+    setForm({ fullName: '', phoneNumber: '', position: '', salary: ''}); 
     setShowModal(false);
     setSaving(false);
     fetchWorkers();
@@ -94,6 +96,7 @@ export default function WorkersPage() {
           { label: 'Jami ustalar',       value: workers.length,                                   color: 'text-[#f0c040]' },
           { label: 'Ulangan (Telegram)', value: workers.filter(w => w.telegramChatId).length,     color: 'text-[#4ade80]' },
           { label: 'Ulanmagan',          value: workers.filter(w => !w.telegramChatId).length,    color: 'text-[#f87171]' },
+          
         ].map((stat, i) => (
           <div key={i} className="bg-[#1a1d27] rounded-2xl px-5 py-4 sm:py-5 border border-[#2a2d3a]">
             <p className="text-[#555] text-[11px] tracking-[1.5px] uppercase m-0 mb-2">{stat.label}</p>
@@ -261,6 +264,7 @@ export default function WorkersPage() {
                 { label: 'Ism familiya', key: 'fullName',     placeholder: 'Azim Karimov',       type: 'text' },
                 { label: 'Telefon',      key: 'phoneNumber',  placeholder: '+998 97 460 15 20',  type: 'text' },
                 { label: 'Lavozim',      key: 'position',     placeholder: 'Duradgor',            type: 'text' },
+                { label: 'Oylik maosh (so\'m)', key: 'salary', placeholder: '6000000', type: 'number' },
               ].map((field) => (
                 <div key={field.key}>
                   <label className="block text-[#888] text-[11px] tracking-[1px] uppercase mb-2">

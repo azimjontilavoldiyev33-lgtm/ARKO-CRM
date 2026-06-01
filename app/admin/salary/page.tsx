@@ -6,6 +6,7 @@ interface Worker {
   _id: string;
   fullName: string;
   position?: string;
+  salary?: number;
 }
 
 interface SalaryResult {
@@ -35,9 +36,11 @@ export default function SalaryPage() {
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState('');
 
-  useEffect(() => {
-    fetch('/api/workers').then(r => r.json()).then(setWorkers);
-  }, []);
+useEffect(() => {
+  const worker = workers.find(w => w._id === workerId);
+  if (worker?.salary) setSalary(worker.salary.toString());
+  else setSalary('');
+}, [workerId, workers]);
 
   async function calculate() {
     if (!workerId || !salary) return;

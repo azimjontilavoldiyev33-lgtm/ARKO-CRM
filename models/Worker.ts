@@ -7,6 +7,7 @@ export interface IWorker extends Document {
   position?: string;
   code?: string;        // ← yangi
   createdAt?: Date;
+  salary?: number;
 }
 
 const WorkerSchema = new Schema<IWorker>({
@@ -36,6 +37,10 @@ const WorkerSchema = new Schema<IWorker>({
     type: Date,
     default: Date.now,
   },
+  salary: {
+  type: Number,
+  default: 0,
+},
 });
 
 const Worker = mongoose.models.Worker || mongoose.model<IWorker>('Worker', WorkerSchema);
