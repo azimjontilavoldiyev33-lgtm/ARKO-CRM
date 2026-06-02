@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Pipeline from '@/models/Pipeline';
 import Task from '@/models/Task';
+import { notifyAll } from '@/lib/sse';
 
 export async function GET() {
   await connectDB();
@@ -38,6 +39,6 @@ export async function POST(req: Request) {
       status:     'pending',
     });
   }
-
+  notifyAll();
   return NextResponse.json(pipeline, { status: 201 });
 }

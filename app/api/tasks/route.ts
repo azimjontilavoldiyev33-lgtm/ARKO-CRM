@@ -16,6 +16,7 @@ export async function GET(req: Request) {
   const tasks = await Task.find(query)
     .populate('order', 'title')
     .populate('worker', 'fullName')
+      .populate('pipelineId', 'title steps currentStep status')  
     .sort({ createdAt: -1 });
 
   return NextResponse.json(tasks);
