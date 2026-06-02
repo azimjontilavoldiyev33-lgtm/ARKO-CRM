@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { connectAttendanceDB } from '@/lib/attendanceDb';
+import { connectDB } from '@/lib/mongodb';
 import mongoose from 'mongoose';
-import AttendanceSchema from '@/models/AttendanceRecord';
+import Attendance from '@/models/Attendance';
 
 const WORK_START = 9;  // 09:00
 const WORK_END   = 18; // 18:00
@@ -19,8 +19,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Parametrlar yetishmayapti' }, { status: 400 });
   }
 
-  const conn = await connectAttendanceDB();
-  const Attendance = conn.models.Attendance || conn.model('Attendance', AttendanceSchema);
+  await connectDB();
 
   // Oy boshи va oxiri
   const from = new Date(year, month - 1, 1);

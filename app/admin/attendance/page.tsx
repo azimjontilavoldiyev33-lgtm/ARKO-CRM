@@ -28,7 +28,8 @@ export default function AttendancePage() {
   const fetchWorkers = async () => {
     const res = await fetch('/api/workers');
     const data = await res.json();
-    if (data.success) setWorkers(data.data);
+    // /api/workers massiv qaytaradi (ba'zan { data } shaklida ham bo'lishi mumkin)
+    setWorkers(Array.isArray(data) ? data : data.data ?? []);
   };
 
   const fetchRecords = async () => {

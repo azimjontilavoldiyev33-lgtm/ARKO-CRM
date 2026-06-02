@@ -5,12 +5,14 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 
 const navItems = [
-  { href: '/admin',         label: 'Dashboard',   icon: '📊' },
-  { href: '/admin/workers', label: 'Ustalar',      icon: '👷' },
-  { href: '/admin/orders',  label: 'Buyurtmalar',  icon: '📦' },
-  { href: '/admin/tasks',   label: 'Vazifalar',    icon: '📋' },
-  { href: '/admin/salary',  label: 'Oylik hisob',  icon: '💰' },
-    { href: '/admin/pipelines', label: 'Ish zanjiri',  icon: '🔗' },
+  { href: '/admin',                label: 'Dashboard',    icon: '📊' },
+  { href: '/admin/workers',        label: 'Ustalar',      icon: '👷' },
+  { href: '/admin/orders',         label: 'Buyurtmalar',  icon: '📦' },
+  { href: '/admin/tasks',          label: 'Vazifalar',    icon: '📋' },
+  { href: '/admin/attendance',     label: 'Davomat',      icon: '⏰' },
+  { href: '/admin/salary',         label: 'Oylik hisob',  icon: '💰' },
+  { href: '/admin/pipelines',      label: 'Ish zanjiri',  icon: '🔗' },
+  { href: '/admin/office-location', label: 'Ofis hududi', icon: '📍' },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

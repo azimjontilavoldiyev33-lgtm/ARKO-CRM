@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Attendance from '@/models/Attendance';
+import Worker from '@/models/Worker';
+
+// populate('worker') uchun Worker modeli ro'yxatdan o'tishi shart
+void Worker;
 
 export async function GET(req: NextRequest) {
   try {

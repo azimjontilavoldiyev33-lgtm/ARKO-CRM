@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Task from '@/models/Task';
-import { notifyAll } from '@/lib/sse'; // ← to'g'ri
+import Worker from '@/models/Worker';
+import Order from '@/models/Order';
+import { notifyAll } from '@/lib/sse';
+
+// populate('worker'|'order') uchun modellar ro'yxatdan o'tishi shart
+void [Worker, Order];
 
 export async function GET() {
   try {
