@@ -226,7 +226,7 @@ interface Task {
                 <option value="">Usta tanlang</option>
                 {workers.map(w => (
                   <option key={w._id} value={w._id}>
-                    {w.fullName} {w.telegramChatId ? '✓' : "(Telegram yo'q)"}
+                    {w.fullName}
                   </option>
                 ))}
               </select>
@@ -238,11 +238,6 @@ interface Task {
               <input type="date" value={form.deadline} onChange={set('deadline')} className={inputCls} />
             </div>
 
-            <div className="bg-emerald-950/50 border border-emerald-800/30 rounded-xl px-4 py-3">
-              <p className="text-emerald-400 text-xs">
-                📲 Vazifa yaratilganda usta Telegramga avtomatik xabar oladi
-              </p>
-            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3 mt-5">
@@ -258,7 +253,7 @@ interface Task {
               className="py-3 rounded-xl bg-[#f0c040] text-[#0f1117] text-sm font-bold hover:bg-[#d4a832] disabled:opacity-40 disabled:cursor-not-allowed transition"
               style={{ fontFamily: "'Syne', sans-serif" }}
             >
-              {saving ? 'Yuborilmoqda...' : '📲 Yuborish'}
+              {saving ? 'Saqlanmoqda...' : 'Saqlash'}
             </button>
           </div>
         </div>
@@ -293,7 +288,7 @@ interface Task {
 
     useEffect(() => {
       fetchAll();
-      const es = new EventSource('/api/events');
+      const es = new EventSource('/api/sse');
       es.onmessage = () => fetchAll();
       return () => es.close();
     }, []);

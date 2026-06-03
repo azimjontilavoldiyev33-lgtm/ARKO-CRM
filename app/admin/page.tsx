@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 interface Stats {
-  workers: { total: number; connected: number };
+  workers: { total: number };
   orders: { total: number; new: number; in_progress: number; completed: number };
   tasks: { total: number; pending: number; in_progress: number; completed: number; overdue: number };
 }
@@ -44,8 +44,7 @@ export default function DashboardPage() {
 
       setStats({
         workers: {
-          total:     workers.length,
-          connected: workers.filter((w: any) => w.telegramChatId).length,
+          total: workers.length,
         },
         orders: {
           total:       orders.length,
@@ -72,7 +71,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchData();
-    const es = new EventSource('/api/events');
+    const es = new EventSource('/api/sse');
     es.onmessage = () => fetchData();
     return () => es.close();
   }, []);
@@ -172,12 +171,7 @@ export default function DashboardPage() {
                 {stats.workers.total}
               </p>
               <div className="flex flex-wrap gap-2">
-                <span className="bg-[#142614] text-[#4ade80] rounded-md px-2.5 py-1 text-xs">
-                  ✓ {stats.workers.connected} ulangan
-                </span>
-                <span className="bg-[#261414] text-[#f87171] rounded-md px-2.5 py-1 text-xs">
-                  ✗ {stats.workers.total - stats.workers.connected} ulanmagan
-                </span>
+                <span className="bg-[#1a2a3a] text-[#60a5fa] rounded-md px-2.5 py-1 text-xs">Faol ustalar</span>
               </div>
             </div>
 
@@ -232,7 +226,6 @@ export default function DashboardPage() {
               {[
                 { label: 'Buyurtmalar bajarilishi', value: stats.orders.completed, total: stats.orders.total, color: 'bg-[#4ade80]', textColor: 'text-[#4ade80]' },
                 { label: 'Vazifalar bajarilishi',   value: stats.tasks.completed,  total: stats.tasks.total,  color: 'bg-[#60a5fa]', textColor: 'text-[#60a5fa]' },
-                { label: 'Ustalar ulanishi',         value: stats.workers.connected,total: stats.workers.total,color: 'bg-[#f0c040]', textColor: 'text-[#f0c040]' },
               ].map((item, i) => {
                 const percent = item.total > 0 ? Math.round((item.value / item.total) * 100) : 0;
                 return (

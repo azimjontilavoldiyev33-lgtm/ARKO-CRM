@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, use } from 'react';
+import WorkerPanel from './WorkerPanel';
 
 interface Task {
   _id: string;
@@ -57,6 +58,18 @@ export default function MonitorPage({ params }: { params: Promise<{ department: 
   const [time, setTime] = useState('');
   const [today, setToday] = useState('');
   const [lastUpdated, setLastUpdated] = useState('');
+  const [showWorker, setShowWorker] = useState(false);
+  const [allWorkers, setAllWorkers] = useState<
+    { _id: string; fullName: string; code: string; position?: string }[]
+  >([]);
+
+  // Ishchilar ro'yxati — WorkerPanel (kod bilan kirish + vazifa o'tkazish) uchun
+  useEffect(() => {
+    fetch('/api/workers')
+      .then(r => r.json())
+      .then(d => setAllWorkers(Array.isArray(d) ? d : []))
+      .catch(() => {});
+  }, []);
 
   const fetchTasks = useCallback(async () => {
     try {
@@ -102,21 +115,6 @@ useEffect(() => {
     sse.close();
   };
 }, [fetchTasks, department]);
-
-  function handleStatusChange(id: string, status: string) {
-    setTasks(prev =>
-      prev.map(t =>
-        t._id === id
-          ? {
-              ...t,
-              status: status as Task['status'],
-              startedAt:   status === 'in_progress' ? new Date().toISOString() : t.startedAt,
-              completedAt: status === 'completed'   ? new Date().toISOString() : t.completedAt,
-            }
-          : t
-      )
-    );
-  }
 
   const pending    = tasks.filter(t => t.status === 'pending');
   const inProgress = tasks.filter(t => t.status === 'in_progress');
@@ -314,7 +312,7 @@ useEffect(() => {
               <div className="tasks-scroll">
                 {pending.length === 0
                   ? <div className="empty-col"><span className="empty-icon">○</span><span className="empty-txt">bo'sh</span></div>
-                  : pending.map(task => <TaskCard key={task._id} task={task} onStatusChange={handleStatusChange} />)
+                  : pending.map(task => <TaskCard key={task._id} task={task} />)
                 }
               </div>
             </div>
@@ -331,7 +329,7 @@ useEffect(() => {
               <div className="tasks-scroll">
                 {inProgress.length === 0
                   ? <div className="empty-col"><span className="empty-icon">◑</span><span className="empty-txt">bo'sh</span></div>
-                  : inProgress.map(task => <TaskCard key={task._id} task={task} onStatusChange={handleStatusChange} />)
+                  : inProgress.map(task => <TaskCard key={task._id} task={task} />)
                 }
               </div>
             </div>
@@ -348,7 +346,7 @@ useEffect(() => {
               <div className="tasks-scroll">
                 {completed.length === 0
                   ? <div className="empty-col"><span className="empty-icon">●</span><span className="empty-txt">bo'sh</span></div>
-                  : completed.map(task => <TaskCard key={task._id} task={task} onStatusChange={handleStatusChange} />)
+                  : completed.map(task => <TaskCard key={task._id} task={task} />)
                 }
               </div>
             </div>
@@ -356,25 +354,33 @@ useEffect(() => {
         )}
 
         {/* Bottom bar */}
-        <div className="bottom-bar">
+        <div className="bottom-bar" style={{ justifyContent: 'space-between' }}>
           <span className="bottom-txt">arko crm · monitor · 15 soniyada yangilanadi</span>
+          <button
+            onClick={() => setShowWorker(true)}
+            style={{
+              fontFamily: "'Azeret Mono', monospace", fontSize: 11, letterSpacing: 2,
+              color: '#4a9eff', background: 'rgba(74,158,255,0.08)',
+              border: '1px solid rgba(74,158,255,0.25)', borderRadius: 8,
+              padding: '6px 14px', cursor: 'pointer',
+            }}
+          >
+            🔓 ISHCHI KIRISHI
+          </button>
         </div>
       </div>
+
+      {showWorker && (
+        <WorkerPanel allWorkers={allWorkers} onClose={() => setShowWorker(false)} />
+      )}
     </>
   );
 }
 
 // ── Task Card ──
-function TaskCard({
-  task,
-  onStatusChange,
-}: {
-  task: Task;
-  onStatusChange: (id: string, status: string) => void;
-}) {
+function TaskCard({ task }: { task: Task }) {
   const overdue = isOverdue(task);
   const days    = daysLeft(task.deadline);
-  const [btnLoading, setBtnLoading] = useState(false);
 
   const createdAt  = new Date(task.createdAt).getTime();
   const deadlineAt = new Date(task.deadline).getTime();
@@ -383,26 +389,6 @@ function TaskCard({
   const elapsed    = now - createdAt;
   const progress   = Math.min(100, Math.max(0, (elapsed / total) * 100));
   const barColor   = overdue ? '#ff5555' : progress > 75 ? '#f0a500' : '#4a9eff';
-
-  async function handleStatus(newStatus: 'in_progress' | 'completed') {
-    setBtnLoading(true);
-    try {
-      const body: Record<string, unknown> = { status: newStatus };
-      if (newStatus === 'in_progress') body.startedAt   = new Date();
-      if (newStatus === 'completed')   body.completedAt = new Date();
-
-      await fetch(`/api/tasks/${task._id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      onStatusChange(task._id, newStatus);
-    } catch {
-      // silent
-    } finally {
-      setBtnLoading(false);
-    }
-  }
 
   return (
     <div className={`task-card ${overdue ? 'overdue' : ''} ${task.status === 'completed' ? 'completed-card' : ''}`}>
@@ -462,28 +448,6 @@ function TaskCard({
         <div className="deadline-bar">
           <div className="deadline-fill" style={{ width: `${progress}%`, background: barColor }} />
         </div>
-      )}
-
-      {task.status === 'pending' && (
-        <button
-          className="action-btn"
-          onClick={() => handleStatus('in_progress')}
-          disabled={btnLoading}
-          style={{ background: 'rgba(240,165,0,0.12)', border: '1px solid rgba(240,165,0,0.35)', color: '#f0a500' }}
-        >
-          {btnLoading ? '...' : '▶ BOSHLASH'}
-        </button>
-      )}
-
-      {task.status === 'in_progress' && (
-        <button
-          className="action-btn"
-          onClick={() => handleStatus('completed')}
-          disabled={btnLoading}
-          style={{ background: 'rgba(0,200,122,0.1)', border: '1px solid rgba(0,200,122,0.3)', color: '#00c87a' }}
-        >
-          {btnLoading ? '...' : '✓ BAJARILDI'}
-        </button>
       )}
     </div>
   );

@@ -6,20 +6,9 @@ const nextConfig: NextConfig = {
 
 
   images: {
-    domains: ['res.cloudinary.com'],
-  },
-  async headers() {
-    return [
-      {
-        source: '/api/webhook',
-        headers: [
-          {
-            key: 'ngrok-skip-browser-warning',
-            value: 'true',
-          },
-        ],
-      },
-    ];
+    remotePatterns: [
+      { protocol: 'https', hostname: 'res.cloudinary.com' },
+    ],
   },
 };
 

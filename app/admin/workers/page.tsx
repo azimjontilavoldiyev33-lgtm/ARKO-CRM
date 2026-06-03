@@ -7,7 +7,7 @@ interface Worker {
   _id: string;
   fullName: string;
   phoneNumber: string;
-  telegramChatId?: string;
+  code?: string;
   position?: string;
   createdAt: string;
   salary?: number;
@@ -93,10 +93,9 @@ body: JSON.stringify({
       {/* ── Stat Cards ─────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-7 sm:mb-8">
         {[
-          { label: 'Jami ustalar',       value: workers.length,                                   color: 'text-[#f0c040]' },
-          { label: 'Ulangan (Telegram)', value: workers.filter(w => w.telegramChatId).length,     color: 'text-[#4ade80]' },
-          { label: 'Ulanmagan',          value: workers.filter(w => !w.telegramChatId).length,    color: 'text-[#f87171]' },
-          
+          { label: 'Jami ustalar',      value: workers.length,                                  color: 'text-[#f0c040]' },
+          { label: 'Lavozimli',         value: workers.filter(w => w.position).length,          color: 'text-[#4ade80]' },
+          { label: 'Oylik belgilangan', value: workers.filter(w => (w.salary ?? 0) > 0).length, color: 'text-[#60a5fa]' },
         ].map((stat, i) => (
           <div key={i} className="bg-[#1a1d27] rounded-2xl px-5 py-4 sm:py-5 border border-[#2a2d3a]">
             <p className="text-[#555] text-[11px] tracking-[1.5px] uppercase m-0 mb-2">{stat.label}</p>
@@ -132,7 +131,7 @@ body: JSON.stringify({
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-[#14161f]">
-                    {["Ism", "Telefon", "Lavozim", "Telegram", "Qo'shilgan", ""].map((h, i) => (
+                    {["Ism", "Telefon", "Lavozim", "Kod", "Qo'shilgan", ""].map((h, i) => (
                       <th
                         key={i}
                         className="px-6 py-3 text-left text-[#555] text-[11px] tracking-widest uppercase font-medium"
@@ -162,11 +161,9 @@ body: JSON.stringify({
                         <td className="px-6 py-4 text-[#888] font-mono text-sm">+{worker.phoneNumber}</td>
                         <td className="px-6 py-4 text-[#888] text-sm">{worker.position || '—'}</td>
                         <td className="px-6 py-4">
-                          {worker.telegramChatId ? (
-                            <span className="bg-[#14261a] text-[#4ade80] rounded-md px-2.5 py-1 text-xs font-semibold">✓ Ulangan</span>
-                          ) : (
-                            <span className="bg-[#261414] text-[#f87171] rounded-md px-2.5 py-1 text-xs font-semibold">✗ Ulanmagan</span>
-                          )}
+                          <span className="bg-[#1a2333] text-[#9aabbf] rounded-md px-2.5 py-1 text-xs font-mono font-semibold tracking-widest">
+                            #{worker.code ?? '—'}
+                          </span>
                         </td>
                         <td className="px-6 py-4 text-[#555] text-sm">
                           {new Date(worker.createdAt).toLocaleDateString('uz-UZ')}
@@ -209,11 +206,9 @@ body: JSON.stringify({
                         <p className="m-0 font-medium text-sm leading-tight">{worker.fullName}</p>
                         <p className="m-0 text-[#666] text-xs mt-0.5">{worker.position || '—'}</p>
                       </div>
-                      {worker.telegramChatId ? (
-                        <span className="shrink-0 bg-[#14261a] text-[#4ade80] rounded-md px-2.5 py-1 text-xs font-semibold">✓ Ulangan</span>
-                      ) : (
-                        <span className="shrink-0 bg-[#261414] text-[#f87171] rounded-md px-2.5 py-1 text-xs font-semibold">✗ Ulanmagan</span>
-                      )}
+                      <span className="shrink-0 bg-[#1a2333] text-[#9aabbf] rounded-md px-2.5 py-1 text-xs font-mono font-semibold tracking-widest">
+                        #{worker.code ?? '—'}
+                      </span>
                     </div>
 
                     {/* Details row */}

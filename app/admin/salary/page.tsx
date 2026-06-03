@@ -36,6 +36,14 @@ export default function SalaryPage() {
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState('');
 
+// Ishchilar ro'yxatini yuklash (dropdown uchun)
+useEffect(() => {
+  fetch('/api/workers')
+    .then(r => r.json())
+    .then(data => setWorkers(Array.isArray(data) ? data : data.data ?? []))
+    .catch(() => {});
+}, []);
+
 useEffect(() => {
   const worker = workers.find(w => w._id === workerId);
   if (worker?.salary) setSalary(worker.salary.toString());

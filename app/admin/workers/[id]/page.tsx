@@ -21,7 +21,7 @@ interface Worker {
   fullName: string;
   phoneNumber: string;
   position?: string;
-  telegramChatId?: string;
+  code?: string;
   createdAt: string;
 }
 
@@ -54,6 +54,45 @@ function Skeleton() {
 }
 
 // ─── Edit Worker Modal ────────────────────────────────────────────────────────
+// Field komponenti modal TASHQARISIDA — aks holda har harfda qayta yaratilib,
+// input fokusdan chiqib ketadi.
+function EditField({
+  label,
+  value,
+  placeholder,
+  icon,
+  error,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  placeholder: string;
+  icon: string;
+  error?: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-[11px] text-[#555] uppercase tracking-widest font-medium">
+        {label}
+      </label>
+      <div className={`flex items-center gap-3 bg-[#14161f] border rounded-xl px-4 py-3 transition-colors ${
+        error ? 'border-red-500/50' : 'border-[#2a2d3a] focus-within:border-[#f0c040]/50'
+      }`}>
+        <span className="text-base shrink-0">{icon}</span>
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="flex-1 bg-transparent text-sm text-white placeholder-[#444] outline-none"
+        />
+      </div>
+      {error && <p className="text-xs text-red-400 pl-1">{error}</p>}
+    </div>
+  );
+}
+
 function EditWorkerModal({
   worker,
   onClose,
@@ -90,41 +129,10 @@ function EditWorkerModal({
     setSaving(false);
   };
 
-  const Field = ({
-    label,
-    field,
-    placeholder,
-    icon,
-  }: {
-    label: string;
-    field: keyof typeof form;
-    placeholder: string;
-    icon: string;
-  }) => (
-    <div className="space-y-1.5">
-      <label className="text-[11px] text-[#555] uppercase tracking-widest font-medium">
-        {label}
-      </label>
-      <div className={`flex items-center gap-3 bg-[#14161f] border rounded-xl px-4 py-3 transition-colors ${
-        errors[field] ? 'border-red-500/50' : 'border-[#2a2d3a] focus-within:border-[#f0c040]/50'
-      }`}>
-        <span className="text-base shrink-0">{icon}</span>
-        <input
-          type="text"
-          value={form[field]}
-          onChange={(e) => {
-            setForm(prev => ({ ...prev, [field]: e.target.value }));
-            if (errors[field]) setErrors(prev => { const n = { ...prev }; delete n[field]; return n; });
-          }}
-          placeholder={placeholder}
-          className="flex-1 bg-transparent text-sm text-white placeholder-[#444] outline-none"
-        />
-      </div>
-      {errors[field] && (
-        <p className="text-xs text-red-400 pl-1">{errors[field]}</p>
-      )}
-    </div>
-  );
+  const update = (field: keyof typeof form) => (v: string) => {
+    setForm(prev => ({ ...prev, [field]: v }));
+    if (errors[field]) setErrors(prev => { const n = { ...prev }; delete n[field]; return n; });
+  };
 
   return (
     <div
@@ -167,9 +175,9 @@ function EditWorkerModal({
 
         {/* Form */}
         <div className="px-6 py-5 space-y-4">
-          <Field label="To'liq ism" field="fullName" placeholder="Masalan: Alisher Karimov" icon="👤" />
-          <Field label="Telefon raqam" field="phoneNumber" placeholder="998901234567" icon="📞" />
-          <Field label="Lavozim (ixtiyoriy)" field="position" placeholder="Masalan: Elektrik" icon="💼" />
+          <EditField label="To'liq ism" icon="👤" placeholder="Masalan: Alisher Karimov" value={form.fullName} error={errors.fullName} onChange={update('fullName')} />
+          <EditField label="Telefon raqam" icon="📞" placeholder="998901234567" value={form.phoneNumber} error={errors.phoneNumber} onChange={update('phoneNumber')} />
+          <EditField label="Lavozim (ixtiyoriy)" icon="💼" placeholder="Masalan: Elektrik" value={form.position} error={errors.position} onChange={update('position')} />
         </div>
 
         {/* Actions */}
@@ -387,7 +395,7 @@ export default function WorkerProfilePage() {
 
   useEffect(() => {
     fetchData();
-    const es = new EventSource('/api/events');
+    const es = new EventSource('/api/sse');
     es.onmessage = () => fetchData();
     return () => es.close();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -495,11 +503,9 @@ export default function WorkerProfilePage() {
           >
             ✏️
           </button>
-          {worker.telegramChatId && (
-            <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-950 text-emerald-400 font-semibold border border-emerald-800/30">
-              ✓ TG
-            </span>
-          )}
+          <span className="text-xs px-2.5 py-1 rounded-full bg-[#1a2333] text-[#9aabbf] font-mono font-semibold tracking-widest">
+            #{worker.code ?? '—'}
+          </span>
         </div>
 
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-5">
@@ -546,17 +552,9 @@ export default function WorkerProfilePage() {
 
               {/* Right side: Telegram badge + Edit button */}
               <div className="self-start sm:self-auto shrink-0 flex items-center gap-3">
-                {worker.telegramChatId ? (
-                  <span className="inline-flex items-center gap-1.5 bg-emerald-950 text-emerald-400 border border-emerald-800/30 rounded-xl px-3.5 py-2 text-xs font-semibold">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                    Telegram ulangan
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 bg-red-950 text-red-400 border border-red-800/30 rounded-xl px-3.5 py-2 text-xs font-semibold">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
-                    Telegram ulanmagan
-                  </span>
-                )}
+                <span className="inline-flex items-center gap-1.5 bg-[#14161f] text-[#9aabbf] border border-[#2a2d3a] rounded-xl px-3.5 py-2 text-xs font-mono font-semibold tracking-widest">
+                  KIRISH KODI: #{worker.code ?? '—'}
+                </span>
 
                 {/* Edit button (desktop) */}
                 <button
