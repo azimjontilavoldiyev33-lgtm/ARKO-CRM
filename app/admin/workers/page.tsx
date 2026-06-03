@@ -28,6 +28,7 @@ export default function WorkersPage() {
   const [showModal, setShowModal] = useState(false);
 const [form, setForm] = useState({ fullName: '', phoneNumber: '', position: '', salary: '' });
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   const fetchWorkers = async () => {
     setLoading(true);
@@ -42,19 +43,30 @@ const [form, setForm] = useState({ fullName: '', phoneNumber: '', position: '', 
   const handleSubmit = async () => {
     if (!form.fullName || !form.phoneNumber) return;
     setSaving(true);
-    await fetch('/api/workers', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({
-  ...form,
-  salary: form.salary ? +form.salary : 0,
-  phoneNumber: form.phoneNumber.replace('+', '').replace(/\s/g, ''),
-}),
-    });
-    setForm({ fullName: '', phoneNumber: '', position: '', salary: ''}); 
-    setShowModal(false);
-    setSaving(false);
-    fetchWorkers();
+    setError('');
+    try {
+      const res = await fetch('/api/workers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...form,
+          salary: form.salary ? +form.salary : 0,
+          phoneNumber: form.phoneNumber.replace('+', '').replace(/\s/g, ''),
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || "Saqlashda xatolik yuz berdi");
+        return;
+      }
+      setForm({ fullName: '', phoneNumber: '', position: '', salary: '' });
+      setShowModal(false);
+      fetchWorkers();
+    } catch {
+      setError('Tarmoq xatosi — qaytadan urinib ko\'ring');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -82,7 +94,7 @@ body: JSON.stringify({
           </h1>
         </div>
         <button
-          onClick={() => setShowModal(true)}
+          onClick={() => { setError(''); setShowModal(true); }}
           className="self-start sm:self-auto bg-[#f0c040] text-[#0f1117] border-none rounded-xl px-5 py-3 font-bold text-sm cursor-pointer tracking-wide hover:bg-[#f5d060] transition-colors"
           style={{ fontFamily: "'Syne', sans-serif" }}
         >
@@ -276,9 +288,15 @@ body: JSON.stringify({
               ))}
             </div>
 
+            {error && (
+              <p className="text-red-400 text-sm mt-4 bg-red-950/40 border border-red-900/40 rounded-xl px-4 py-2.5">
+                {error}
+              </p>
+            )}
+
             <div className="flex gap-3 mt-6">
               <button
-                onClick={() => setShowModal(false)}
+                onClick={() => { setError(''); setShowModal(false); }}
                 className="flex-1 bg-transparent border border-[#2a2d3a] text-[#888] rounded-xl py-3 cursor-pointer text-sm hover:border-[#3a3d4a] hover:text-[#aaa] transition-colors"
               >
                 Bekor qilish

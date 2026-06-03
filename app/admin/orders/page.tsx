@@ -56,9 +56,34 @@ function StatCard({ label, value, color }: { label: string; value: number; color
   );
 }
 
+// ─── Status tanlash (badge ko'rinishidagi dropdown) ─────────────────────────────
+const STATUS_OPTIONS: { value: Order['status']; label: string }[] = [
+  { value: 'new',         label: 'Yangi'      },
+  { value: 'in_progress', label: 'Jarayonda'  },
+  { value: 'completed',   label: 'Tugallandi' },
+];
+
+function StatusSelect({ value, onChange }: { value: Order['status']; onChange: (s: Order['status']) => void }) {
+  const meta = STATUS_META[value];
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value as Order['status'])}
+      onClick={(e) => e.stopPropagation()}
+      className={`shrink-0 rounded-lg text-[11px] sm:text-xs font-semibold px-2.5 py-1 sm:py-1.5 border-none outline-none cursor-pointer appearance-none ${meta.badge}`}
+      title="Statusni o'zgartirish"
+    >
+      {STATUS_OPTIONS.map(o => (
+        <option key={o.value} value={o.value} className="bg-[#1a1d27] text-[#e8e8e8]">
+          {o.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 // ─── Mobile OrderCard ─────────────────────────────────────────────────────────
-function OrderCard({ order, onDelete, onImages }: { order: Order; onDelete: () => void; onImages: () => void }) {
-  const sm      = STATUS_META[order.status];
+function OrderCard({ order, onDelete, onImages, onStatusChange }: { order: Order; onDelete: () => void; onImages: () => void; onStatusChange: (s: Order['status']) => void }) {
   const overdue = isOverdue(order);
   return (
     <div className={`bg-[#1a1d27] rounded-2xl border p-4 space-y-3 ${overdue ? 'border-red-900/50' : 'border-[#2a2d3a]'}`}>
@@ -68,10 +93,7 @@ function OrderCard({ order, onDelete, onImages }: { order: Order; onDelete: () =
           <p className="text-sm font-semibold text-white leading-snug truncate">{order.title}</p>
           <p className="text-xs text-[#555] mt-0.5">👤 {order.clientName}</p>
         </div>
-        <span className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold ${sm.badge}`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${sm.dot}`} />
-          {sm.label}
-        </span>
+        <StatusSelect value={order.status} onChange={onStatusChange} />
       </div>
 
       <div className="flex items-center gap-2">
@@ -288,6 +310,17 @@ export default function OrdersPage() {
     fetchOrders();
   };
 
+  const handleStatusChange = async (id: string, status: Order['status']) => {
+    // optimistik yangilanish
+    setOrders(prev => prev.map(o => (o._id === id ? { ...o, status } : o)));
+    await fetch(`/api/orders/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    showToast('Status yangilandi ✓');
+  };
+
   const stats = {
     total:       orders.length,
     new:         orders.filter(o => o.status === 'new').length,
@@ -364,6 +397,7 @@ export default function OrdersPage() {
                     order={order}
                     onDelete={() => handleDelete(order._id)}
                     onImages={() => setSelectedOrder(order)}
+                    onStatusChange={(s) => handleStatusChange(order._id, s)}
                   />
                 ))}
               </div>
@@ -371,7 +405,6 @@ export default function OrdersPage() {
               {/* ── Desktop / tablet rows (sm+) ── */}
               <div className="hidden sm:flex flex-col gap-3">
                 {orders.map(order => {
-                  const meta    = STATUS_META[order.status];
                   const overdue = isOverdue(order);
                   return (
                     <div
@@ -409,11 +442,8 @@ export default function OrdersPage() {
                         </p>
                       </div>
 
-                      {/* Status badge */}
-                      <span className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold ${meta.badge}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
-                        {meta.label}
-                      </span>
+                      {/* Status dropdown */}
+                      <StatusSelect value={order.status} onChange={(s) => handleStatusChange(order._id, s)} />
 
                       {/* Delete */}
                       <button

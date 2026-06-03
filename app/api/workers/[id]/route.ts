@@ -29,6 +29,15 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const { id } = await params;
   await connectDB();
   const body = await req.json();
-  const worker = await Worker.findByIdAndUpdate(id, body, { new: true });
-  return NextResponse.json(worker);
+  // Kirish kodi avtomatik — qo'lda o'zgartirishga ruxsat yo'q
+  delete body.code;
+  try {
+    const worker = await Worker.findByIdAndUpdate(id, body, { new: true });
+    return NextResponse.json(worker);
+  } catch (err: any) {
+    if (err.code === 11000) {
+      return NextResponse.json({ error: 'Telefon raqam band' }, { status: 400 });
+    }
+    return NextResponse.json({ error: 'Xato yuz berdi' }, { status: 500 });
+  }
 }

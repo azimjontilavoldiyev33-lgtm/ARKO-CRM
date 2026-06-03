@@ -22,6 +22,7 @@ interface Worker {
   phoneNumber: string;
   position?: string;
   code?: string;
+  salary?: number;
   createdAt: string;
 }
 
@@ -106,6 +107,7 @@ function EditWorkerModal({
     fullName: worker.fullName,
     phoneNumber: worker.phoneNumber,
     position: worker.position ?? '',
+    salary: worker.salary != null ? String(worker.salary) : '',
   });
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -125,6 +127,7 @@ function EditWorkerModal({
       fullName: form.fullName.trim(),
       phoneNumber: form.phoneNumber.trim(),
       position: form.position.trim() || undefined,
+      salary: form.salary ? Number(form.salary) : 0,
     });
     setSaving(false);
   };
@@ -178,6 +181,7 @@ function EditWorkerModal({
           <EditField label="To'liq ism" icon="👤" placeholder="Masalan: Alisher Karimov" value={form.fullName} error={errors.fullName} onChange={update('fullName')} />
           <EditField label="Telefon raqam" icon="📞" placeholder="998901234567" value={form.phoneNumber} error={errors.phoneNumber} onChange={update('phoneNumber')} />
           <EditField label="Lavozim (ixtiyoriy)" icon="💼" placeholder="Masalan: Elektrik" value={form.position} error={errors.position} onChange={update('position')} />
+          <EditField label="Oylik maosh (so'm)" icon="💰" placeholder="6000000" value={form.salary} onChange={update('salary')} />
         </div>
 
         {/* Actions */}
@@ -423,7 +427,8 @@ export default function WorkerProfilePage() {
       showToast("Ma'lumotlar yangilandi ✓");
       fetchData();
     } else {
-      showToast('Xatolik yuz berdi ✗');
+      const d = await res.json().catch(() => ({}));
+      showToast(d.error || 'Xatolik yuz berdi ✗');
     }
   };
 

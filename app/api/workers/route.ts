@@ -14,6 +14,15 @@ async function generateCode(): Promise<string> {
 export async function GET() {
   await connectDB();
   const workers = await Worker.find().sort({ createdAt: -1 });
+
+  // Kodsiz eski ishchilarga avtomatik kod berish (bir martalik backfill)
+  for (const w of workers) {
+    if (!w.code) {
+      w.code = await generateCode();
+      await w.save();
+    }
+  }
+
   return NextResponse.json(workers);
 }
 
@@ -21,6 +30,7 @@ export async function POST(req: Request) {
   await connectDB();
   const body = await req.json();
   try {
+    // Kirish kodi HAR DOIM avtomatik (random + unikal). body.code bo'lsa ham e'tiborsiz.
     const code = await generateCode();
     const worker = await Worker.create({ ...body, code });
     return NextResponse.json(worker, { status: 201 });
