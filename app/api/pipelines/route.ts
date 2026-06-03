@@ -5,6 +5,7 @@ import Task from '@/models/Task';
 import Order from '@/models/Order';
 import Worker from '@/models/Worker';
 import { notifyAll } from '@/lib/sse';
+import { getDefaultCompanyId } from '@/lib/company';
 
 // populate('order'|'steps.worker') uchun modellar ro'yxatdan o'tishi shart
 void [Order, Worker];
@@ -21,6 +22,7 @@ export async function GET() {
 export async function POST(req: Request) {
   await connectDB();
   const body = await req.json();
+  const company = await getDefaultCompanyId();
 
   const pipeline = await Pipeline.create({
     title:       body.title,
@@ -28,6 +30,7 @@ export async function POST(req: Request) {
     steps:       body.steps,
     currentStep: 0,
     status:      'active',
+    company,
   });
 
   // Birinchi bosqich uchun task yaratish
@@ -42,6 +45,7 @@ export async function POST(req: Request) {
       pipelineId: pipeline._id,
       stepIndex:  0,
       status:     'pending',
+      company,
     });
   }
   notifyAll();

@@ -5,6 +5,7 @@ import OfficeLocation from '@/models/OfficeLocation';
 import { getWorkerIdFromRequest } from '@/lib/mobileAuth';
 import { distanceInMeters } from '@/lib/distance';
 import { notifyAll } from '@/lib/sse';
+import { getDefaultCompanyId } from '@/lib/company';
 
 // POST /api/mobile/attendance/check-in — KELDI
 export async function POST(req: NextRequest) {
@@ -65,6 +66,7 @@ export async function POST(req: NextRequest) {
       worker: workerId,
       checkIn: new Date(),
       location: { latitude: lat, longitude: lng },
+      company: await getDefaultCompanyId(),
     });
 
     // Real-time: admin panelni yangilash

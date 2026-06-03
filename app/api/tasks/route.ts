@@ -5,6 +5,7 @@ import Order from '@/models/Order';
 import Worker from '@/models/Worker';
 import Pipeline from '@/models/Pipeline';
 import { notifyAll } from '@/lib/sse';
+import { getDefaultCompanyId } from '@/lib/company';
 
 // populate('order'|'worker'|'pipelineId') ishlashi uchun bu modellar
 // Mongoose'da ro'yxatdan o'tgan bo'lishi shart. Referans — tree-shaking
@@ -35,7 +36,8 @@ export async function POST(req: Request) {
   const body = await req.json();
 
   try {
-    const task = await Task.create(body);
+    const company = await getDefaultCompanyId();
+    const task = await Task.create({ ...body, company });
     notifyAll();
     return NextResponse.json(task, { status: 201 });
   } catch (err) {

@@ -8,6 +8,7 @@ export interface IWorker extends Document {
   code?: string;        // ← yangi
   createdAt?: Date;
   salary?: number;
+  company?: mongoose.Types.ObjectId;   // ko'p-ijara uchun
 }
 
 const WorkerSchema = new Schema<IWorker>({
@@ -41,6 +42,7 @@ const WorkerSchema = new Schema<IWorker>({
   type: Number,
   default: 0,
 },
+  company: { type: Schema.Types.ObjectId, ref: 'Company' },
 });
 
 const Worker = mongoose.models.Worker || mongoose.model<IWorker>('Worker', WorkerSchema);

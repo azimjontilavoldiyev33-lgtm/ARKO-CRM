@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Worker from '@/models/Worker';
+import { getDefaultCompanyId } from '@/lib/company';
 
 // 4 xonali unique kod generatsiya
 async function generateCode(): Promise<string> {
@@ -32,7 +33,8 @@ export async function POST(req: Request) {
   try {
     // Kirish kodi HAR DOIM avtomatik (random + unikal). body.code bo'lsa ham e'tiborsiz.
     const code = await generateCode();
-    const worker = await Worker.create({ ...body, code });
+    const company = await getDefaultCompanyId();
+    const worker = await Worker.create({ ...body, code, company });
     return NextResponse.json(worker, { status: 201 });
   } catch (err: any) {
     if (err.code === 11000) {

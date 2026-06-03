@@ -5,6 +5,7 @@ export interface IOfficeLocation extends Document {
   lat: number;
   lng: number;
   radius: number; // metr
+  company?: mongoose.Types.ObjectId;
 }
 
 const OfficeLocationSchema = new Schema<IOfficeLocation>({
@@ -12,6 +13,7 @@ const OfficeLocationSchema = new Schema<IOfficeLocation>({
   lat: { type: Number, required: true },
   lng: { type: Number, required: true },
   radius: { type: Number, default: 100 },
+  company: { type: Schema.Types.ObjectId, ref: 'Company' },
 });
 
 const OfficeLocation = mongoose.models.OfficeLocation || mongoose.model<IOfficeLocation>('OfficeLocation', OfficeLocationSchema);

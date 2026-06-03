@@ -16,6 +16,7 @@ export interface ITask extends Document {
   createdAt: Date;
   pipelineId?: Types.ObjectId;
 stepIndex?: number;
+  company?: Types.ObjectId;
 }
 
 const TaskSchema = new Schema<ITask>({
@@ -38,6 +39,7 @@ const TaskSchema = new Schema<ITask>({
   createdAt: { type: Date, default: Date.now },
   pipelineId: { type: Schema.Types.ObjectId, ref: 'Pipeline' },
 stepIndex:  { type: Number },
+  company: { type: Schema.Types.ObjectId, ref: 'Company' },
 });
 
 const Task = mongoose.models.Task || mongoose.model<ITask>('Task', TaskSchema);

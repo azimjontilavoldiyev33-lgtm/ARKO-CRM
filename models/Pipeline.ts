@@ -14,6 +14,7 @@ export interface IPipeline extends Document {
   currentStep: number;
   status: 'active' | 'completed';
   createdAt: Date;
+  company?: Types.ObjectId;
 }
 
 const PipelineStepSchema = new Schema<IPipelineStep>({
@@ -30,6 +31,7 @@ const PipelineSchema = new Schema<IPipeline>({
   currentStep: { type: Number, default: 0 },
   status:      { type: String, enum: ['active', 'completed'], default: 'active' },
   createdAt:   { type: Date, default: Date.now },
+  company:     { type: Schema.Types.ObjectId, ref: 'Company' },
 });
 
 const Pipeline = mongoose.models.Pipeline || mongoose.model<IPipeline>('Pipeline', PipelineSchema);

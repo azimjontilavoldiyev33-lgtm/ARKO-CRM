@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import OfficeLocation from '@/models/OfficeLocation';
+import { getDefaultCompanyId } from '@/lib/company';
 
 // GET - ishxona hududi olish
 export async function GET() {
@@ -24,9 +25,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Mavjud bo'lsa yangilash, bo'lmasa yaratish
+    const company = await getDefaultCompanyId();
     const location = await OfficeLocation.findOneAndUpdate(
       {},
-      { name, lat, lng, radius: radius || 100 },
+      { name, lat, lng, radius: radius || 100, company },
       { upsert: true, new: true }
     );
 

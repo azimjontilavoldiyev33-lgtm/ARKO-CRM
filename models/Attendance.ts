@@ -11,6 +11,7 @@ export interface IAttendance extends Document {
   checkOut: Date | null;
   location?: IGeoPoint;          // kelish koordinatasi
   checkOutLocation?: IGeoPoint;  // ketish koordinatasi
+  company?: mongoose.Types.ObjectId;
 }
 
 const GeoPointSchema = new Schema<IGeoPoint>(
@@ -31,6 +32,7 @@ const AttendanceSchema = new Schema<IAttendance>({
   checkOut: { type: Date, default: null },
   location: { type: GeoPointSchema },
   checkOutLocation: { type: GeoPointSchema },
+  company: { type: Schema.Types.ObjectId, ref: 'Company' },
 }, { timestamps: true });
 
 const Attendance = mongoose.models.Attendance || mongoose.model<IAttendance>('Attendance', AttendanceSchema);

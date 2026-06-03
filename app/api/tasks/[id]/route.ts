@@ -40,6 +40,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
           pipelineId: pipeline._id,
           stepIndex:  nextIndex,
           status:     'pending',
+          company:    task.company,
         });
 
         // Pipeline currentStep yangilash

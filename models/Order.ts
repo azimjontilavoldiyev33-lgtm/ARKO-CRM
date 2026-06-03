@@ -8,6 +8,7 @@ export interface IOrder extends Document {
   status: 'new' | 'in_progress' | 'completed';
   images: string[];
   createdAt: Date;
+  company?: mongoose.Types.ObjectId;
 }
 
 
@@ -23,6 +24,7 @@ const OrderSchema = new Schema<IOrder>({
   },
   images: [{ type: String }],
   createdAt: { type: Date, default: Date.now },
+  company: { type: Schema.Types.ObjectId, ref: 'Company' },
 });
 
 const Order = mongoose.models.Order || mongoose.model<IOrder>('Order', OrderSchema);
