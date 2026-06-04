@@ -40,11 +40,16 @@ export async function GET(req: Request) {
 
     workDays++;
 
-    // Overtime hisoblash
+    // Overtime — ish DAVOMIYLIGI bo'yicha (vaqt zonasidan mustaqil).
+    // (checkOut - checkIn) - obed > 8 soat bo'lsa, ortig'i overtime.
+    // (Oldin chiqish soati 18:00 dan oshsa deb hisoblardi — Vercel UTC bo'lgani
+    //  uchun noto'g'ri ishlardi.)
     if (rec.checkOut) {
-      const checkOutHour = rec.checkOut.getHours() + rec.checkOut.getMinutes() / 60;
-      if (checkOutHour > WORK_END) {
-        overtimeMin += (checkOutHour - WORK_END) * 60;
+      const grossHours =
+        (new Date(rec.checkOut).getTime() - new Date(rec.checkIn).getTime()) / (1000 * 60 * 60);
+      const netHours = grossHours - LUNCH; // obed ayirildi
+      if (netHours > WORK_HOURS) {
+        overtimeMin += (netHours - WORK_HOURS) * 60;
       }
     }
   }
