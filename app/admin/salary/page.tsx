@@ -24,7 +24,7 @@ interface Sheet {
 }
 
 const MONTHS = ['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'];
-const DOW = ['Ya','Du','Se','Ch','Pa','Ju','Sh']; // 0=Yakshanba
+const DOW = ['Yakshanba','Dushanba','Seshanba','Chorshanba','Payshanba','Juma','Shanba'];
 
 const fmtTime = (iso: string | null) =>
   iso ? new Date(iso).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }) : '';
@@ -34,9 +34,12 @@ export default function SalaryPage() {
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
+  const [tab, setTab] = useState<'daily' | 'monthly'>('daily');
+  const [selectedDay, setSelectedDay] = useState(now.getDate());
   const [sheet, setSheet] = useState<Sheet | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const daysInMonth = new Date(year, month, 0).getDate();
   const isArchive = year < now.getFullYear() || (year === now.getFullYear() && month < now.getMonth() + 1);
 
   const fetchSheet = useCallback(async () => {
@@ -52,34 +55,73 @@ export default function SalaryPage() {
 
   useEffect(() => { fetchSheet(); }, [fetchSheet]);
 
-  const prevMonth = () => {
-    if (month === 1) { setMonth(12); setYear((y) => y - 1); }
-    else setMonth((m) => m - 1);
-  };
-  const nextMonth = () => {
-    if (month === 12) { setMonth(1); setYear((y) => y + 1); }
-    else setMonth((m) => m + 1);
+  // Oy o'zgarsa, tanlangan kunni chegarada ushlab turamiz
+  useEffect(() => {
+    setSelectedDay((d) => Math.min(d, daysInMonth));
+  }, [daysInMonth]);
+
+  const prevMonth = () => { if (month === 1) { setMonth(12); setYear((y) => y - 1); } else setMonth((m) => m - 1); };
+  const nextMonth = () => { if (month === 12) { setMonth(1); setYear((y) => y + 1); } else setMonth((m) => m + 1); };
+
+  const workers = sheet?.workers ?? [];
+  const dow = DOW[new Date(year, month - 1, selectedDay).getDay()];
+
+  // ── Eksport ──────────────────────────────────────────────
+  const exportCSV = () => {
+    const head = ['Ishchi', 'Lavozim', 'Ishlagan kun', 'Overtime (soat)', "Oylik (so'm)"];
+    const rows = workers.map((w) => [w.fullName, w.position, w.workDays, w.overtimeHours, w.totalSalary]);
+    const csv = '﻿' + [head, ...rows].map((r) => r.map((c) => `"${c}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `oylik-${MONTHS[month - 1]}-${year}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
   };
 
-  const dayNumbers = sheet ? Array.from({ length: sheet.daysInMonth }, (_, i) => i + 1) : [];
-  const isSunday = (d: number) => new Date(year, month - 1, d).getDay() === 0;
+  const exportPDF = () => {
+    const rows = workers
+      .map(
+        (w) => `<tr>
+          <td>${w.fullName}</td><td>${w.position}</td>
+          <td style="text-align:center">${w.workDays}</td>
+          <td style="text-align:center">${w.overtimeHours} h</td>
+          <td style="text-align:right">${fmtMoney(w.totalSalary)} so'm</td>
+        </tr>`
+      )
+      .join('');
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Oylik hisobot</title>
+      <style>
+        body{font-family:Arial,sans-serif;padding:24px;color:#111}
+        h1{font-size:18px;margin:0 0 4px} p{color:#666;margin:0 0 16px;font-size:13px}
+        table{width:100%;border-collapse:collapse;font-size:13px}
+        th,td{border:1px solid #ccc;padding:8px 10px}
+        th{background:#f3f3f3;text-align:left}
+      </style></head><body>
+      <h1>Oylik hisobot — ${MONTHS[month - 1]} ${year}</h1>
+      <p>Mebel CRM · ish kunlari (yakshanbasiz): ${sheet?.totalWorkDays ?? '—'}</p>
+      <table><thead><tr><th>Ishchi</th><th>Lavozim</th><th style="text-align:center">Ishlagan kun</th><th style="text-align:center">Overtime</th><th style="text-align:right">Oylik</th></tr></thead>
+      <tbody>${rows}</tbody></table>
+      <script>window.onload=function(){window.print();}</script>
+      </body></html>`;
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); }
+  };
 
   return (
     <div className="min-h-screen bg-[#0f1117] text-[#e8e8e8]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap');`}</style>
 
-      <div className="px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
 
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
+        {/* Header + month nav */}
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-5">
           <div>
             <p className="text-[#555] text-[11px] uppercase tracking-[2px] mb-1">Mebel CRM</p>
             <h1 className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-br from-white to-[#888] bg-clip-text text-transparent m-0" style={{ fontFamily: "'Syne', sans-serif" }}>
               Oylik hisob
             </h1>
           </div>
-
-          {/* Month nav */}
           <div className="flex items-center gap-2">
             <button onClick={prevMonth} className="w-9 h-9 rounded-xl bg-[#1a1d27] border border-[#2a2d3a] text-[#888] hover:text-white transition">◀</button>
             <div className="px-4 py-2 rounded-xl bg-[#1a1d27] border border-[#2a2d3a] text-center min-w-[150px]">
@@ -90,81 +132,121 @@ export default function SalaryPage() {
           </div>
         </div>
 
-        {/* Info */}
-        <p className="text-[#555] text-xs mb-4">
-          Oylik kelish-ketishdan avtomatik hisoblanadi · Ish kunlari (yakshanbasiz): <span className="text-[#888]">{sheet?.totalWorkDays ?? '—'}</span> · Eksport (Excel/PDF) — keyingi bosqichda
-        </p>
+        {/* Tabs */}
+        <div className="flex gap-2 mb-5">
+          {([['daily', '📅 Kunlik'], ['monthly', '📊 Oylik xulosa']] as const).map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setTab(key)}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
+                tab === key ? 'bg-[#f0c040] text-[#0f1117]' : 'bg-[#1a1d27] border border-[#2a2d3a] text-[#888] hover:text-white'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
 
         {loading ? (
           <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] py-16 flex flex-col items-center gap-3 text-[#555]">
             <div className="w-8 h-8 rounded-full border-2 border-[#f0c040] border-t-transparent animate-spin" />
             <p className="text-sm">Yuklanmoqda...</p>
           </div>
-        ) : !sheet || sheet.workers.length === 0 ? (
+        ) : workers.length === 0 ? (
           <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] py-20 text-center text-[#555]">
             <p className="text-5xl mb-3">💰</p>
             <p className="text-sm">Ishchi yo'q yoki ma'lumot topilmadi</p>
           </div>
-        ) : (
-          <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="border-collapse text-xs">
+        ) : tab === 'daily' ? (
+          /* ── KUNLIK ── */
+          <>
+            {/* Day nav */}
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <button onClick={() => setSelectedDay((d) => Math.max(1, d - 1))} className="w-9 h-9 rounded-xl bg-[#1a1d27] border border-[#2a2d3a] text-[#888] hover:text-white transition">◀</button>
+              <div className="px-5 py-2 rounded-xl bg-[#1a1d27] border border-[#2a2d3a] text-center min-w-[200px]">
+                <span className="font-semibold text-sm">{selectedDay}-{MONTHS[month - 1]}</span>
+                <span className="ml-2 text-xs text-[#666]">{dow}</span>
+              </div>
+              <button onClick={() => setSelectedDay((d) => Math.min(daysInMonth, d + 1))} className="w-9 h-9 rounded-xl bg-[#1a1d27] border border-[#2a2d3a] text-[#888] hover:text-white transition">▶</button>
+            </div>
+
+            <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] overflow-hidden">
+              <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr className="bg-[#14161f]">
-                    <th className="sticky left-0 z-20 bg-[#14161f] px-3 py-2.5 text-left text-[#888] font-medium border-r border-[#2a2d3a] min-w-[160px]">
-                      Ishchi
-                    </th>
-                    {dayNumbers.map((d) => (
-                      <th key={d} className={`px-1.5 py-2 text-center font-medium min-w-[62px] border-r border-[#23262f] ${isSunday(d) ? 'text-[#5a3a3a] bg-[#1d1518]' : 'text-[#666]'}`}>
-                        <div className="text-[13px] text-[#aaa]">{d}</div>
-                        <div className="text-[9px] uppercase">{DOW[new Date(year, month - 1, d).getDay()]}</div>
-                      </th>
-                    ))}
-                    <th className="px-3 py-2.5 text-center text-[#888] font-medium border-l border-[#2a2d3a] min-w-[55px]">Kun</th>
-                    <th className="px-3 py-2.5 text-center text-amber-400 font-medium min-w-[60px]">OT</th>
-                    <th className="px-3 py-2.5 text-right text-emerald-400 font-medium min-w-[110px]">Oylik</th>
+                    <th className="px-4 py-3 text-left text-[#555] text-[11px] uppercase tracking-widest font-medium">Ishchi</th>
+                    <th className="px-4 py-3 text-center text-emerald-400 text-[11px] uppercase tracking-widest font-medium">Keldi</th>
+                    <th className="px-4 py-3 text-center text-red-400 text-[11px] uppercase tracking-widest font-medium">Ketdi</th>
+                    <th className="px-4 py-3 text-center text-amber-400 text-[11px] uppercase tracking-widest font-medium">Qo'shimcha</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {sheet.workers.map((w) => (
+                  {workers.map((w) => {
+                    const cell = w.days[String(selectedDay)];
+                    return (
+                      <tr key={w._id} className="border-t border-[#23262f] hover:bg-[#1f2235] transition-colors">
+                        <td className="px-4 py-3">
+                          <p className="font-medium text-white">{w.fullName}</p>
+                          {w.position && <p className="text-xs text-[#555]">{w.position}</p>}
+                        </td>
+                        {cell ? (
+                          <>
+                            <td className="px-4 py-3 text-center text-emerald-400 font-medium">{fmtTime(cell.in)}</td>
+                            <td className="px-4 py-3 text-center text-red-400 font-medium">{cell.out ? fmtTime(cell.out) : '—'}</td>
+                            <td className="px-4 py-3 text-center text-amber-400 font-medium">{cell.otMin > 0 ? `+${(cell.otMin / 60).toFixed(1)} h` : '—'}</td>
+                          </>
+                        ) : (
+                          <td colSpan={3} className="px-4 py-3 text-center text-[#444]">Kelmagan</td>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        ) : (
+          /* ── OYLIK XULOSA ── */
+          <>
+            <div className="flex justify-end gap-2 mb-4">
+              <button onClick={exportCSV} className="px-4 py-2 rounded-xl bg-[#142614] border border-emerald-800/40 text-emerald-400 text-sm font-semibold hover:bg-[#173017] transition">
+                📥 Excel
+              </button>
+              <button onClick={exportPDF} className="px-4 py-2 rounded-xl bg-[#2a1414] border border-red-800/40 text-red-400 text-sm font-semibold hover:bg-[#331717] transition">
+                📥 PDF
+              </button>
+            </div>
+
+            <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] overflow-hidden">
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="bg-[#14161f]">
+                    <th className="px-4 py-3 text-left text-[#555] text-[11px] uppercase tracking-widest font-medium">Ishchi</th>
+                    <th className="px-4 py-3 text-center text-[#555] text-[11px] uppercase tracking-widest font-medium">Ishlagan kun</th>
+                    <th className="px-4 py-3 text-center text-amber-400 text-[11px] uppercase tracking-widest font-medium">Overtime</th>
+                    <th className="px-4 py-3 text-right text-emerald-400 text-[11px] uppercase tracking-widest font-medium">Oylik</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {workers.map((w) => (
                     <tr key={w._id} className="border-t border-[#23262f] hover:bg-[#1f2235] transition-colors">
-                      <td className="sticky left-0 z-10 bg-[#1a1d27] px-3 py-2 border-r border-[#2a2d3a]">
-                        <p className="font-medium text-[13px] text-white whitespace-nowrap">{w.fullName}</p>
-                        {w.position && <p className="text-[10px] text-[#555]">{w.position}</p>}
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-white">{w.fullName}</p>
+                        {w.position && <p className="text-xs text-[#555]">{w.position}</p>}
                       </td>
-                      {dayNumbers.map((d) => {
-                        const cell = w.days[String(d)];
-                        const sun = isSunday(d);
-                        return (
-                          <td key={d} className={`px-1 py-1.5 text-center align-top border-r border-[#23262f] ${sun ? 'bg-[#17121400]' : ''}`}>
-                            {cell ? (
-                              <div className="leading-tight">
-                                <div className="text-emerald-400 text-[10px]">{fmtTime(cell.in)}</div>
-                                <div className="text-red-400 text-[10px]">{cell.out ? fmtTime(cell.out) : '·'}</div>
-                                {cell.otMin > 0 && (
-                                  <div className="text-amber-400 text-[9px] font-semibold">+{(cell.otMin / 60).toFixed(1)}h</div>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="text-[#2e313c]">–</span>
-                            )}
-                          </td>
-                        );
-                      })}
-                      <td className="px-3 py-2 text-center border-l border-[#2a2d3a] font-semibold text-white">{w.workDays}</td>
-                      <td className="px-3 py-2 text-center text-amber-400 font-semibold">{w.overtimeHours}h</td>
-                      <td className="px-3 py-2 text-right text-emerald-400 font-bold whitespace-nowrap">{fmtMoney(w.totalSalary)}</td>
+                      <td className="px-4 py-3 text-center font-semibold text-white">{w.workDays}</td>
+                      <td className="px-4 py-3 text-center text-amber-400 font-semibold">{w.overtimeHours} h</td>
+                      <td className="px-4 py-3 text-right text-emerald-400 font-bold whitespace-nowrap">{fmtMoney(w.totalSalary)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </div>
+            <p className="text-[#444] text-[11px] mt-3">
+              Oylik kelish-ketishdan avtomatik · ish kunlari (yakshanbasiz): {sheet?.totalWorkDays} · maoshni Ustalar profilida belgilang
+            </p>
+          </>
         )}
-
-        <p className="text-[#444] text-[11px] mt-3">
-          🟢 keldi · 🔴 ketdi · 🟡 qo'shimcha vaqt · Kun = ishlagan kunlar · OT = qo'shimcha soat
-        </p>
       </div>
     </div>
   );
