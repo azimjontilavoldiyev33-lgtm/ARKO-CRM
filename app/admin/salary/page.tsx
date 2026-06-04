@@ -1,198 +1,170 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
-interface Worker {
+interface DayCell { in: string; out: string | null; otMin: number }
+interface Row {
   _id: string;
   fullName: string;
-  position?: string;
-  salary?: number;
-}
-
-interface SalaryResult {
+  position: string;
+  salary: number;
+  days: Record<string, DayCell>;
   workDays: number;
-  totalWorkDays: number;
   overtimeHours: number;
-  hourlyRate: number;
-  dailyRate: number;
   overtimePay: number;
-  baseSalary: number;
+  baseEarned: number;
   totalSalary: number;
 }
-
-const inputCls = 'w-full bg-[#0f1117] border border-[#2a2d3a] rounded-xl px-4 py-3 text-sm text-[#e8e8e8] outline-none focus:border-[#f0c040] transition placeholder-[#444] [color-scheme:dark]';
-
-function fmt(n: number) {
-  return n.toLocaleString('uz-UZ') + ' so\'m';
+interface Sheet {
+  month: number;
+  year: number;
+  daysInMonth: number;
+  totalWorkDays: number;
+  workers: Row[];
 }
 
+const MONTHS = ['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'];
+const DOW = ['Ya','Du','Se','Ch','Pa','Ju','Sh']; // 0=Yakshanba
+
+const fmtTime = (iso: string | null) =>
+  iso ? new Date(iso).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }) : '';
+const fmtMoney = (n: number) => n.toLocaleString('uz-UZ');
+
 export default function SalaryPage() {
-  const [workers, setWorkers]   = useState<Worker[]>([]);
-  const [workerId, setWorkerId] = useState('');
-  const [month, setMonth]       = useState(new Date().getMonth() + 1);
-  const [year, setYear]         = useState(new Date().getFullYear());
-  const [salary, setSalary]     = useState('');
-  const [result, setResult]     = useState<SalaryResult | null>(null);
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState('');
+  const now = new Date();
+  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [year, setYear] = useState(now.getFullYear());
+  const [sheet, setSheet] = useState<Sheet | null>(null);
+  const [loading, setLoading] = useState(true);
 
-// Ishchilar ro'yxatini yuklash (dropdown uchun)
-useEffect(() => {
-  fetch('/api/workers')
-    .then(r => r.json())
-    .then(data => setWorkers(Array.isArray(data) ? data : data.data ?? []))
-    .catch(() => {});
-}, []);
+  const isArchive = year < now.getFullYear() || (year === now.getFullYear() && month < now.getMonth() + 1);
 
-useEffect(() => {
-  const worker = workers.find(w => w._id === workerId);
-  if (worker?.salary) setSalary(worker.salary.toString());
-  else setSalary('');
-}, [workerId, workers]);
-
-  async function calculate() {
-    if (!workerId || !salary) return;
+  const fetchSheet = useCallback(async () => {
     setLoading(true);
-    setError('');
-    setResult(null);
     try {
-      const res = await fetch(
-        `/api/salary?workerId=${workerId}&month=${month}&year=${year}&salary=${salary}`
-      );
+      const res = await fetch(`/api/salary/sheet?month=${month}&year=${year}`);
       const data = await res.json();
-      if (data.error) setError(data.error);
-      else setResult(data);
-    } catch {
-      setError('Xato yuz berdi');
+      if (!data.error) setSheet(data);
     } finally {
       setLoading(false);
     }
-  }
+  }, [month, year]);
 
-  const months = [
-    'Yanvar','Fevral','Mart','Aprel','May','Iyun',
-    'Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'
-  ];
+  useEffect(() => { fetchSheet(); }, [fetchSheet]);
+
+  const prevMonth = () => {
+    if (month === 1) { setMonth(12); setYear((y) => y - 1); }
+    else setMonth((m) => m - 1);
+  };
+  const nextMonth = () => {
+    if (month === 12) { setMonth(1); setYear((y) => y + 1); }
+    else setMonth((m) => m + 1);
+  };
+
+  const dayNumbers = sheet ? Array.from({ length: sheet.daysInMonth }, (_, i) => i + 1) : [];
+  const isSunday = (d: number) => new Date(year, month - 1, d).getDay() === 0;
 
   return (
     <div className="min-h-screen bg-[#0f1117] text-[#e8e8e8]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap');`}</style>
 
-      <div className="max-w-2xl mx-auto px-4 py-8">
+      <div className="px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
 
         {/* Header */}
-        <div className="mb-8">
-          <p className="text-[#555] text-[11px] uppercase tracking-[2px] mb-1">Mebel CRM</p>
-          <h1 className="text-3xl font-extrabold text-white" style={{ fontFamily: "'Syne', sans-serif" }}>
-            Oylik hisob
-          </h1>
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
+          <div>
+            <p className="text-[#555] text-[11px] uppercase tracking-[2px] mb-1">Mebel CRM</p>
+            <h1 className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-br from-white to-[#888] bg-clip-text text-transparent m-0" style={{ fontFamily: "'Syne', sans-serif" }}>
+              Oylik hisob
+            </h1>
+          </div>
+
+          {/* Month nav */}
+          <div className="flex items-center gap-2">
+            <button onClick={prevMonth} className="w-9 h-9 rounded-xl bg-[#1a1d27] border border-[#2a2d3a] text-[#888] hover:text-white transition">◀</button>
+            <div className="px-4 py-2 rounded-xl bg-[#1a1d27] border border-[#2a2d3a] text-center min-w-[150px]">
+              <span className="font-semibold text-sm">{MONTHS[month - 1]} {year}</span>
+              {isArchive && <span className="ml-2 text-[10px] text-[#f0c040] uppercase tracking-wide">arxiv</span>}
+            </div>
+            <button onClick={nextMonth} className="w-9 h-9 rounded-xl bg-[#1a1d27] border border-[#2a2d3a] text-[#888] hover:text-white transition">▶</button>
+          </div>
         </div>
 
-        {/* Form */}
-        <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] p-6 space-y-4 mb-6">
+        {/* Info */}
+        <p className="text-[#555] text-xs mb-4">
+          Oylik kelish-ketishdan avtomatik hisoblanadi · Ish kunlari (yakshanbasiz): <span className="text-[#888]">{sheet?.totalWorkDays ?? '—'}</span> · Eksport (Excel/PDF) — keyingi bosqichda
+        </p>
 
-          {/* Ishchi */}
-          <div>
-            <label className="block text-[#888] text-[11px] uppercase tracking-widest mb-1.5">Ishchi</label>
-            <select value={workerId} onChange={e => setWorkerId(e.target.value)} className={inputCls}>
-              <option value="">Ishchi tanlang</option>
-              {workers.map(w => (
-                <option key={w._id} value={w._id}>{w.fullName}</option>
-              ))}
-            </select>
+        {loading ? (
+          <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] py-16 flex flex-col items-center gap-3 text-[#555]">
+            <div className="w-8 h-8 rounded-full border-2 border-[#f0c040] border-t-transparent animate-spin" />
+            <p className="text-sm">Yuklanmoqda...</p>
           </div>
-
-          {/* Oy va yil */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[#888] text-[11px] uppercase tracking-widest mb-1.5">Oy</label>
-              <select value={month} onChange={e => setMonth(+e.target.value)} className={inputCls}>
-                {months.map((m, i) => (
-                  <option key={i} value={i + 1}>{m}</option>
-                ))}
-              </select>
+        ) : !sheet || sheet.workers.length === 0 ? (
+          <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] py-20 text-center text-[#555]">
+            <p className="text-5xl mb-3">💰</p>
+            <p className="text-sm">Ishchi yo'q yoki ma'lumot topilmadi</p>
+          </div>
+        ) : (
+          <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="border-collapse text-xs">
+                <thead>
+                  <tr className="bg-[#14161f]">
+                    <th className="sticky left-0 z-20 bg-[#14161f] px-3 py-2.5 text-left text-[#888] font-medium border-r border-[#2a2d3a] min-w-[160px]">
+                      Ishchi
+                    </th>
+                    {dayNumbers.map((d) => (
+                      <th key={d} className={`px-1.5 py-2 text-center font-medium min-w-[62px] border-r border-[#23262f] ${isSunday(d) ? 'text-[#5a3a3a] bg-[#1d1518]' : 'text-[#666]'}`}>
+                        <div className="text-[13px] text-[#aaa]">{d}</div>
+                        <div className="text-[9px] uppercase">{DOW[new Date(year, month - 1, d).getDay()]}</div>
+                      </th>
+                    ))}
+                    <th className="px-3 py-2.5 text-center text-[#888] font-medium border-l border-[#2a2d3a] min-w-[55px]">Kun</th>
+                    <th className="px-3 py-2.5 text-center text-amber-400 font-medium min-w-[60px]">OT</th>
+                    <th className="px-3 py-2.5 text-right text-emerald-400 font-medium min-w-[110px]">Oylik</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sheet.workers.map((w) => (
+                    <tr key={w._id} className="border-t border-[#23262f] hover:bg-[#1f2235] transition-colors">
+                      <td className="sticky left-0 z-10 bg-[#1a1d27] px-3 py-2 border-r border-[#2a2d3a]">
+                        <p className="font-medium text-[13px] text-white whitespace-nowrap">{w.fullName}</p>
+                        {w.position && <p className="text-[10px] text-[#555]">{w.position}</p>}
+                      </td>
+                      {dayNumbers.map((d) => {
+                        const cell = w.days[String(d)];
+                        const sun = isSunday(d);
+                        return (
+                          <td key={d} className={`px-1 py-1.5 text-center align-top border-r border-[#23262f] ${sun ? 'bg-[#17121400]' : ''}`}>
+                            {cell ? (
+                              <div className="leading-tight">
+                                <div className="text-emerald-400 text-[10px]">{fmtTime(cell.in)}</div>
+                                <div className="text-red-400 text-[10px]">{cell.out ? fmtTime(cell.out) : '·'}</div>
+                                {cell.otMin > 0 && (
+                                  <div className="text-amber-400 text-[9px] font-semibold">+{(cell.otMin / 60).toFixed(1)}h</div>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-[#2e313c]">–</span>
+                            )}
+                          </td>
+                        );
+                      })}
+                      <td className="px-3 py-2 text-center border-l border-[#2a2d3a] font-semibold text-white">{w.workDays}</td>
+                      <td className="px-3 py-2 text-center text-amber-400 font-semibold">{w.overtimeHours}h</td>
+                      <td className="px-3 py-2 text-right text-emerald-400 font-bold whitespace-nowrap">{fmtMoney(w.totalSalary)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <div>
-              <label className="block text-[#888] text-[11px] uppercase tracking-widest mb-1.5">Yil</label>
-              <select value={year} onChange={e => setYear(+e.target.value)} className={inputCls}>
-                {[2024, 2025, 2026].map(y => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Oylik maosh */}
-          <div>
-            <label className="block text-[#888] text-[11px] uppercase tracking-widest mb-1.5">Oylik maosh (so'm)</label>
-            <input
-              type="number"
-              placeholder="6000000"
-              value={salary}
-              onChange={e => setSalary(e.target.value)}
-              className={inputCls}
-            />
-          </div>
-
-          <button
-            onClick={calculate}
-            disabled={!workerId || !salary || loading}
-            className="w-full py-3 rounded-xl bg-[#f0c040] text-[#0f1117] font-bold text-sm hover:bg-[#d4a832] disabled:opacity-40 disabled:cursor-not-allowed transition"
-            style={{ fontFamily: "'Syne', sans-serif" }}
-          >
-            {loading ? 'Hisoblanmoqda...' : 'Hisoblash'}
-          </button>
-        </div>
-
-        {/* Error */}
-        {error && (
-          <div className="bg-red-950/50 border border-red-800/40 rounded-2xl p-4 text-red-400 text-sm mb-6">
-            {error}
           </div>
         )}
 
-        {/* Result */}
-        {result && (
-          <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] p-6 space-y-4">
-            <h2 className="text-lg font-bold text-white" style={{ fontFamily: "'Syne', sans-serif" }}>
-              {months[month - 1]} {year} — Hisob
-            </h2>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-[#14161f] rounded-xl p-4">
-                <p className="text-[#555] text-[10px] uppercase tracking-wide mb-1">Ish kunlari</p>
-                <p className="text-2xl font-bold text-white">{result.workDays}<span className="text-sm text-[#555] ml-1">/ {result.totalWorkDays}</span></p>
-              </div>
-              <div className="bg-[#14161f] rounded-xl p-4">
-                <p className="text-[#555] text-[10px] uppercase tracking-wide mb-1">Overtime</p>
-                <p className="text-2xl font-bold text-amber-400">{result.overtimeHours}<span className="text-sm text-[#555] ml-1">soat</span></p>
-              </div>
-              <div className="bg-[#14161f] rounded-xl p-4">
-                <p className="text-[#555] text-[10px] uppercase tracking-wide mb-1">Soatlik</p>
-                <p className="text-lg font-bold text-blue-400">{fmt(result.hourlyRate)}</p>
-              </div>
-              <div className="bg-[#14161f] rounded-xl p-4">
-                <p className="text-[#555] text-[10px] uppercase tracking-wide mb-1">Kunlik</p>
-                <p className="text-lg font-bold text-blue-400">{fmt(result.dailyRate)}</p>
-              </div>
-            </div>
-
-            <div className="border-t border-[#2a2d3a] pt-4 space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-[#888] text-sm">Asosiy maosh</span>
-                <span className="text-white font-semibold">{fmt(result.baseSalary)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-[#888] text-sm">Overtime to'lovi</span>
-                <span className="text-amber-400 font-semibold">+ {fmt(result.overtimePay)}</span>
-              </div>
-              <div className="flex justify-between items-center border-t border-[#2a2d3a] pt-3">
-                <span className="text-white font-bold">Jami</span>
-                <span className="text-emerald-400 text-xl font-extrabold">{fmt(result.totalSalary)}</span>
-              </div>
-            </div>
-          </div>
-        )}
+        <p className="text-[#444] text-[11px] mt-3">
+          🟢 keldi · 🔴 ketdi · 🟡 qo'shimcha vaqt · Kun = ishlagan kunlar · OT = qo'shimcha soat
+        </p>
       </div>
     </div>
   );
