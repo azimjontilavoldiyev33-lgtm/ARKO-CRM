@@ -5,7 +5,7 @@ import Order from '@/models/Order';
 import Worker from '@/models/Worker';
 import Pipeline from '@/models/Pipeline';
 import { notifyAll } from '@/lib/sse';
-import { getDefaultCompanyId } from '@/lib/company';
+import { getAuth } from '@/lib/auth';
 
 // populate('order'|'worker'|'pipelineId') ishlashi uchun bu modellar
 // Mongoose'da ro'yxatdan o'tgan bo'lishi shart. Referans — tree-shaking
@@ -22,6 +22,11 @@ export async function GET(req: Request) {
   if (workerId) query.worker = workerId;
   if (department) query.department = department;
 
+  // Admin sessiyasi bo'lsa — faqat o'z korxonasi vazifalari.
+  // (Monitor/WorkerPanel ochiq qoladi — ular sessiyasiz; ko'p-ijara monitor 3-bosqichda.)
+  const auth = await getAuth();
+  if (auth?.companyId) query.company = auth.companyId;
+
   const tasks = await Task.find(query)
     .populate('order', 'title')
     .populate('worker', 'fullName')
@@ -35,9 +40,10 @@ export async function POST(req: Request) {
   await connectDB();
   const body = await req.json();
 
+  const auth = await getAuth();
+  if (!auth?.companyId) return NextResponse.json({ error: 'Avtorizatsiya talab qilinadi' }, { status: 401 });
   try {
-    const company = await getDefaultCompanyId();
-    const task = await Task.create({ ...body, company });
+    const task = await Task.create({ ...body, company: auth.companyId });
     notifyAll();
     return NextResponse.json(task, { status: 201 });
   } catch (err) {

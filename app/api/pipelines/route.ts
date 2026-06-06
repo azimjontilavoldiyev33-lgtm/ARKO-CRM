@@ -5,14 +5,16 @@ import Task from '@/models/Task';
 import Order from '@/models/Order';
 import Worker from '@/models/Worker';
 import { notifyAll } from '@/lib/sse';
-import { getDefaultCompanyId } from '@/lib/company';
+import { getAuth } from '@/lib/auth';
 
 // populate('order'|'steps.worker') uchun modellar ro'yxatdan o'tishi shart
 void [Order, Worker];
 
 export async function GET() {
+  const auth = await getAuth();
+  if (!auth?.companyId) return NextResponse.json({ error: 'Avtorizatsiya talab qilinadi' }, { status: 401 });
   await connectDB();
-  const pipelines = await Pipeline.find()
+  const pipelines = await Pipeline.find({ company: auth.companyId })
     .populate('order', 'title')
     .populate('steps.worker', 'fullName')
     .sort({ createdAt: -1 });
@@ -20,9 +22,11 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const auth = await getAuth();
+  if (!auth?.companyId) return NextResponse.json({ error: 'Avtorizatsiya talab qilinadi' }, { status: 401 });
   await connectDB();
   const body = await req.json();
-  const company = await getDefaultCompanyId();
+  const company = auth.companyId;
 
   const pipeline = await Pipeline.create({
     title:       body.title,

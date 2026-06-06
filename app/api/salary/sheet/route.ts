@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Worker from '@/models/Worker';
 import Attendance from '@/models/Attendance';
+import { getAuth } from '@/lib/auth';
 
 const WORK_HOURS = 8;   // standart ish kuni
 const LUNCH = 1;        // obed (soat)
@@ -36,6 +37,8 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'month va year majburiy' }, { status: 400 });
   }
 
+  const auth = await getAuth();
+  if (!auth?.companyId) return NextResponse.json({ error: 'Avtorizatsiya talab qilinadi' }, { status: 401 });
   await connectDB();
 
   const from = new Date(year, month - 1, 1);
@@ -43,8 +46,8 @@ export async function GET(req: Request) {
   const daysInMonth = new Date(year, month, 0).getDate();
   const totalWorkDays = workDaysInMonth(year, month);
 
-  const workers = await Worker.find().sort({ fullName: 1 });
-  const records = await Attendance.find({ checkIn: { $gte: from, $lt: to } });
+  const workers = await Worker.find({ company: auth.companyId }).sort({ fullName: 1 });
+  const records = await Attendance.find({ company: auth.companyId, checkIn: { $gte: from, $lt: to } });
 
   // workerId -> { kun: {in, out, otMin} }
   const map: Record<string, Record<number, DayCell>> = {};

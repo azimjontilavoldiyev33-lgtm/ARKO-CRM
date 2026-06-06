@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Worker from '@/models/Worker';
-import { getDefaultCompanyId } from '@/lib/company';
+import { getAuth } from '@/lib/auth';
 
 // 4 xonali unique kod generatsiya
 async function generateCode(): Promise<string> {
@@ -13,8 +13,10 @@ async function generateCode(): Promise<string> {
 }
 
 export async function GET() {
+  const auth = await getAuth();
+  if (!auth?.companyId) return NextResponse.json({ error: 'Avtorizatsiya talab qilinadi' }, { status: 401 });
   await connectDB();
-  const workers = await Worker.find().sort({ createdAt: -1 });
+  const workers = await Worker.find({ company: auth.companyId }).sort({ createdAt: -1 });
 
   // Kodsiz eski ishchilarga avtomatik kod berish (bir martalik backfill)
   for (const w of workers) {
@@ -28,13 +30,14 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const auth = await getAuth();
+  if (!auth?.companyId) return NextResponse.json({ error: 'Avtorizatsiya talab qilinadi' }, { status: 401 });
   await connectDB();
   const body = await req.json();
   try {
     // Kirish kodi HAR DOIM avtomatik (random + unikal). body.code bo'lsa ham e'tiborsiz.
     const code = await generateCode();
-    const company = await getDefaultCompanyId();
-    const worker = await Worker.create({ ...body, code, company });
+    const worker = await Worker.create({ ...body, code, company: auth.companyId });
     return NextResponse.json(worker, { status: 201 });
   } catch (err: any) {
     if (err.code === 11000) {

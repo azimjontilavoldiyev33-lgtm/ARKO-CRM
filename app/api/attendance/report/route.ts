@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Attendance from '@/models/Attendance';
 import Worker from '@/models/Worker';
+import { getAuth } from '@/lib/auth';
 
 // populate('worker') uchun Worker modeli ro'yxatdan o'tishi shart
 void Worker;
 
 export async function GET(req: NextRequest) {
   try {
+    const auth = await getAuth();
+    if (!auth?.companyId) return NextResponse.json({ success: false, message: 'Avtorizatsiya talab qilinadi' }, { status: 401 });
     await connectDB();
 
     const { searchParams } = new URL(req.url);
@@ -15,7 +18,7 @@ export async function GET(req: NextRequest) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
-    const filter: Record<string, unknown> = {};
+    const filter: Record<string, unknown> = { company: auth.companyId };
 
     if (workerId) {
       filter.worker = workerId;
