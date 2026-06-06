@@ -4,6 +4,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { connectDB } from '@/lib/mongodb';
 import Admin from '@/models/Admin';
+import Company from '@/models/Company';
 import { getDefaultCompanyId } from '@/lib/company';
 
 export const authOptions: NextAuthOptions = {
@@ -42,6 +43,15 @@ export const authOptions: NextAuthOptions = {
 
         const ok = await bcrypt.compare(credentials.password, admin.passwordHash);
         if (!ok) return null;
+
+        // Oddiy admin uchun korxona faol bo'lishi shart (superadmin har doim kira oladi).
+        // isActive maydoni yo'q (eski hujjat) bo'lsa — faol deb hisoblanadi; faqat aniq
+        // o'chirilgan (isActive === false) korxonaga kirish bloklanadi.
+        if (admin.role !== 'superadmin') {
+          if (!admin.company) return null;
+          const company = await Company.findById(admin.company);
+          if (!company || company.isActive === false) return null;
+        }
 
         return {
           id: String(admin._id),
