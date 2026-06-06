@@ -86,7 +86,7 @@ export default function SalaryPage() {
         tfoot td{font-weight:bold;background:#fafafa}
       </style></head><body>
       <h1>Oylik hisobot — ${MONTHS[month - 1]} ${year}</h1>
-      <p>Mebel CRM · ish kunlari (yakshanbasiz): ${sheet?.totalWorkDays ?? '—'}</p>
+      <p>Tabel · ish kunlari (yakshanbasiz): ${sheet?.totalWorkDays ?? '—'}</p>
       <table>
         <thead><tr><th>Ishchi</th><th>Lavozim</th><th style="text-align:center">Ishlagan kun</th><th style="text-align:center">Overtime</th><th style="text-align:right">Oylik</th></tr></thead>
         <tbody>${rows}</tbody>
@@ -107,7 +107,7 @@ export default function SalaryPage() {
         {/* Header + month nav */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-5">
           <div>
-            <p className="text-[#555] text-[11px] uppercase tracking-[2px] mb-1">Mebel CRM</p>
+            <p className="text-[#555] text-[11px] uppercase tracking-[2px] mb-1">Tabel</p>
             <h1 className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-br from-white to-[#888] bg-clip-text text-transparent m-0" style={{ fontFamily: "'Syne', sans-serif" }}>
               Oylik hisob
             </h1>

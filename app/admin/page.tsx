@@ -95,7 +95,7 @@ export default function DashboardPage() {
       {/* ── Header ─────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8 sm:mb-10">
         <div>
-          <p className="text-[#555] text-[11px] tracking-[2px] uppercase mb-1.5">Mebel CRM</p>
+          <p className="text-[#555] text-[11px] tracking-[2px] uppercase mb-1.5">Tabel</p>
           <h1
             className="text-3xl sm:text-4xl font-extrabold m-0 bg-gradient-to-br from-white to-[#888] bg-clip-text text-transparent"
             style={{ fontFamily: "'Syne', sans-serif" }}

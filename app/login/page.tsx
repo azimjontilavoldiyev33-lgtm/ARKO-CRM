@@ -36,11 +36,11 @@ export default function LoginPage() {
       <div style={{ width: '400px' }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: '#f0c040', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 800, color: '#0f1117', fontFamily: "'Syne', sans-serif", margin: '0 auto 16px' }}>M</div>
+          <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: '#f0c040', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 800, color: '#0f1117', fontFamily: "'Syne', sans-serif", margin: '0 auto 16px' }}>T</div>
           <h1 style={{ fontFamily: "'Syne', sans-serif", fontSize: '28px', fontWeight: 800, margin: '0 0 8px', background: 'linear-gradient(135deg, #fff 0%, #888 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            Mebel Smart CRM
+            Tabel
           </h1>
-          <p style={{ color: '#555', margin: 0, fontSize: '14px' }}>Admin paneliga kirish</p>
+          <p style={{ color: '#555', margin: 0, fontSize: '14px' }}>Davomat va CRM tizimi — kirish</p>
         </div>
 
         {/* Form */}

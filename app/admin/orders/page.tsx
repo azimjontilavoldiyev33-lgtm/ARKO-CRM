@@ -348,7 +348,7 @@ export default function OrdersPage() {
           {/* ── Header ── */}
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6 sm:mb-10">
             <div>
-              <p className="text-[#555] text-[11px] uppercase tracking-[2px] mb-1">Mebel CRM</p>
+              <p className="text-[#555] text-[11px] uppercase tracking-[2px] mb-1">Tabel</p>
               <h1
                 className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-br from-white to-[#888] bg-clip-text text-transparent m-0"
                 style={{ fontFamily: "'Syne', sans-serif" }}

@@ -113,7 +113,7 @@ export default function PipelinesPage() {
 
         {/* Header */}
         <div className="mb-8">
-          <p className="text-[#555] text-[11px] uppercase tracking-[2px] mb-1">Mebel CRM</p>
+          <p className="text-[#555] text-[11px] uppercase tracking-[2px] mb-1">Tabel</p>
           <h1 className="text-3xl font-extrabold text-white" style={{ fontFamily: "'Syne', sans-serif" }}>
             Ish zanjiri
           </h1>

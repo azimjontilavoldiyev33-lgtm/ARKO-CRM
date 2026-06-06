@@ -107,7 +107,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div style={{ padding: '28px 24px', borderBottom: '1px solid #1e2130', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div>
             <p style={{ color: '#444', fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase', margin: '0 0 4px' }}>
-              Mebel
+              Davomat + CRM
             </p>
             <h2 style={{
               fontFamily: "'Syne', sans-serif",
@@ -118,7 +118,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
             }}>
-              Smart CRM
+              Tabel
             </h2>
           </div>
 
