@@ -36,10 +36,13 @@ const AVATAR_COLORS = [
   { bg: 'bg-[#2a1414]', text: 'text-[#f87171]' },
 ];
 
-function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
+function StatCard({ label, value, color, icon, chip }: { label: string; value: number; color: string; icon: string; chip: string }) {
   return (
     <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] p-4 sm:p-5">
-      <p className="text-[#555] text-[10px] sm:text-[11px] uppercase tracking-widest mb-2">{label}</p>
+      <div className="flex justify-between items-start mb-2">
+        <p className="text-[#666] text-[10px] sm:text-[11px] uppercase tracking-widest m-0">{label}</p>
+        <span className={`w-8 h-8 rounded-lg ${chip} ${color} flex items-center justify-center text-sm shrink-0`}>{icon}</span>
+      </div>
       <p className={`text-2xl sm:text-3xl font-extrabold ${color}`} style={{ fontFamily: "'Syne', sans-serif" }}>
         {value}
       </p>
@@ -54,6 +57,7 @@ export default function AttendancePage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(false);
+  const [company, setCompany] = useState('');
 
   const fetchWorkers = async () => {
     const res = await fetch('/api/workers');
@@ -61,12 +65,15 @@ export default function AttendancePage() {
     setWorkers(Array.isArray(data) ? data : data.data ?? []);
   };
 
-  const fetchRecords = async () => {
+  const fetchRecords = async (override?: { workerId?: string; startDate?: string; endDate?: string }) => {
     setLoading(true);
+    const wId = override?.workerId ?? workerId;
+    const sDate = override?.startDate ?? startDate;
+    const eDate = override?.endDate ?? endDate;
     const params = new URLSearchParams();
-    if (workerId) params.append('workerId', workerId);
-    if (startDate) params.append('startDate', startDate);
-    if (endDate) params.append('endDate', endDate);
+    if (wId) params.append('workerId', wId);
+    if (sDate) params.append('startDate', sDate);
+    if (eDate) params.append('endDate', eDate);
 
     const res = await fetch(`/api/attendance/report?${params.toString()}`);
     const data = await res.json();
@@ -74,9 +81,29 @@ export default function AttendancePage() {
     setLoading(false);
   };
 
+  // Lokal sana (TZ off-by-one bo'lmasligi uchun)
+  const localDate = (d = new Date()) =>
+    new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  const setToday = () => {
+    const t = localDate();
+    setStartDate(t); setEndDate(t);
+    fetchRecords({ startDate: t, endDate: t });
+  };
+  const setLast7 = () => {
+    const e = localDate();
+    const s = localDate(new Date(Date.now() - 6 * 86400000));
+    setStartDate(s); setEndDate(e);
+    fetchRecords({ startDate: s, endDate: e });
+  };
+  const clearRange = () => {
+    setStartDate(''); setEndDate(''); setWorkerId('');
+    fetchRecords({ startDate: '', endDate: '', workerId: '' });
+  };
+
   useEffect(() => {
     fetchWorkers();
     fetchRecords();
+    fetch('/api/me').then((r) => (r.ok ? r.json() : null)).then((d) => { if (d?.companyName) setCompany(d.companyName); }).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -94,7 +121,7 @@ export default function AttendancePage() {
 
         {/* ── Header ── */}
         <div className="mb-6 sm:mb-8">
-          <p className="text-[#555] text-[11px] uppercase tracking-[2px] mb-1">Tabel</p>
+          <p className="text-[#f0c040] text-[11px] uppercase tracking-[2px] mb-1">{company || 'Tabel'}</p>
           <h1
             className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-br from-white to-[#888] bg-clip-text text-transparent m-0"
             style={{ fontFamily: "'Syne', sans-serif" }}
@@ -105,13 +132,18 @@ export default function AttendancePage() {
 
         {/* ── Stats ── */}
         <div className="grid grid-cols-3 gap-3 mb-6">
-          <StatCard label="Yozuvlar"    value={stats.total}    color="text-white" />
-          <StatCard label="Ishda"       value={stats.active}   color="text-amber-400" />
-          <StatCard label="Yakunlangan" value={stats.finished} color="text-emerald-400" />
+          <StatCard label="Yozuvlar"    value={stats.total}    color="text-white"       icon="📋" chip="bg-[#22252f]" />
+          <StatCard label="Ishda"       value={stats.active}   color="text-amber-400"   icon="⏰" chip="bg-[#2a2410]" />
+          <StatCard label="Yakunlangan" value={stats.finished} color="text-emerald-400" icon="✅" chip="bg-[#142614]" />
         </div>
 
         {/* ── Filterlar ── */}
         <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] p-4 sm:p-5 mb-6">
+          <div className="flex flex-wrap gap-2 mb-4">
+            <button onClick={setToday} className="bg-[#22252f] text-[#ccc] text-xs rounded-lg px-3.5 py-1.5 hover:bg-[#2a2d3a] transition">Bugun</button>
+            <button onClick={setLast7} className="bg-[#22252f] text-[#ccc] text-xs rounded-lg px-3.5 py-1.5 hover:bg-[#2a2d3a] transition">Oxirgi 7 kun</button>
+            <button onClick={clearRange} className="bg-transparent border border-[#2a2d3a] text-[#888] text-xs rounded-lg px-3.5 py-1.5 hover:text-[#ccc] hover:border-[#3a3d4a] transition">Hammasi</button>
+          </div>
           <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
             <div className="flex-1">
               <label className="block text-[#888] text-[11px] uppercase tracking-widest mb-1.5">Ishchi</label>
@@ -131,7 +163,7 @@ export default function AttendancePage() {
               <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={inputCls} />
             </div>
             <button
-              onClick={fetchRecords}
+              onClick={() => fetchRecords()}
               className="bg-[#f0c040] text-[#0f1117] font-bold text-sm px-5 py-2.5 rounded-xl hover:bg-[#d4a832] transition whitespace-nowrap"
               style={{ fontFamily: "'Syne', sans-serif" }}
             >
