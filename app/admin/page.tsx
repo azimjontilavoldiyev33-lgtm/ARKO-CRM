@@ -29,6 +29,7 @@ export default function DashboardPage() {
   const [recentTasks, setRecentTasks] = useState<RecentTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [company, setCompany] = useState<string>('');
 
   const fetchData = async () => {
     try {
@@ -71,6 +72,10 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchData();
+    fetch('/api/me')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d?.companyName) setCompany(d.companyName); })
+      .catch(() => {});
     const es = new EventSource('/api/sse');
     es.onmessage = () => fetchData();
     return () => es.close();
@@ -95,13 +100,14 @@ export default function DashboardPage() {
       {/* ── Header ─────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8 sm:mb-10">
         <div>
-          <p className="text-[#555] text-[11px] tracking-[2px] uppercase mb-1.5">Tabel</p>
+          <p className="text-[#f0c040] text-[11px] tracking-[2px] uppercase mb-1.5">{company || 'Tabel'}</p>
           <h1
             className="text-3xl sm:text-4xl font-extrabold m-0 bg-gradient-to-br from-white to-[#888] bg-clip-text text-transparent"
             style={{ fontFamily: "'Syne', sans-serif" }}
           >
             Dashboard
           </h1>
+          <p className="text-[#555] text-sm m-0 mt-1.5">Xush kelibsiz 👋</p>
         </div>
         <div className="flex sm:flex-col sm:items-end gap-3 sm:gap-0">
           <button
@@ -114,23 +120,6 @@ export default function DashboardPage() {
             {lastUpdated.toLocaleTimeString('uz-UZ')} da yangilandi
           </p>
         </div>
-      </div>
-
-      {/* ── Quick Nav ──────────────────────────────────────── */}
-      <div className="flex flex-wrap gap-2 sm:gap-3 mb-7 sm:mb-8">
-        {[
-          { label: '👷 Ustalar',     href: '/admin/workers' },
-          { label: '📦 Buyurtmalar', href: '/admin/orders' },
-          { label: '📋 Vazifalar',   href: '/admin/tasks' },
-        ].map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className="bg-[#1a1d27] border border-[#2a2d3a] text-[#888] rounded-xl px-4 py-2.5 text-sm no-underline hover:text-[#e8e8e8] hover:border-[#3a3d4a] transition-all"
-          >
-            {link.label}
-          </Link>
-        ))}
       </div>
 
       {stats && (
@@ -156,62 +145,53 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* ── Stat Cards ────────────────────────────────── */}
+          {/* ── Stat Cards (bosiladigan) ──────────────────── */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
             {/* Workers */}
-            <div className="bg-[#1a1d27] rounded-2xl p-5 sm:p-6 border border-[#2a2d3a]">
+            <Link href="/admin/workers" className="group bg-[#1a1d27] rounded-2xl p-5 sm:p-6 border border-[#2a2d3a] no-underline hover:border-[#3a3d4a] hover:bg-[#1d2030] hover:-translate-y-0.5 transition-all">
               <div className="flex justify-between items-start mb-4">
-                <p className="m-0 text-[#555] text-[11px] tracking-[1.5px] uppercase">Ustalar</p>
-                <span className="text-2xl">👷</span>
+                <p className="m-0 text-[#666] text-[11px] tracking-[1.5px] uppercase">Ustalar</p>
+                <span className="w-9 h-9 rounded-lg bg-[#15233a] text-[#60a5fa] flex items-center justify-center text-lg">👷</span>
               </div>
-              <p
-                className="text-4xl sm:text-5xl font-extrabold m-0 mb-3 text-[#e8e8e8]"
-                style={{ fontFamily: "'Syne', sans-serif" }}
-              >
+              <p className="text-4xl sm:text-5xl font-extrabold m-0 mb-3 text-[#e8e8e8]" style={{ fontFamily: "'Syne', sans-serif" }}>
                 {stats.workers.total}
               </p>
               <div className="flex flex-wrap gap-2">
-                <span className="bg-[#1a2a3a] text-[#60a5fa] rounded-md px-2.5 py-1 text-xs">Faol ustalar</span>
+                <span className="bg-[#15233a] text-[#60a5fa] rounded-md px-2.5 py-1 text-xs">Faol ustalar</span>
               </div>
-            </div>
+            </Link>
 
             {/* Orders */}
-            <div className="bg-[#1a1d27] rounded-2xl p-5 sm:p-6 border border-[#2a2d3a]">
+            <Link href="/admin/orders" className="group bg-[#1a1d27] rounded-2xl p-5 sm:p-6 border border-[#2a2d3a] no-underline hover:border-[#3a3d4a] hover:bg-[#1d2030] hover:-translate-y-0.5 transition-all">
               <div className="flex justify-between items-start mb-4">
-                <p className="m-0 text-[#555] text-[11px] tracking-[1.5px] uppercase">Buyurtmalar</p>
-                <span className="text-2xl">📦</span>
+                <p className="m-0 text-[#666] text-[11px] tracking-[1.5px] uppercase">Buyurtmalar</p>
+                <span className="w-9 h-9 rounded-lg bg-[#2a2410] text-[#f0c040] flex items-center justify-center text-lg">📦</span>
               </div>
-              <p
-                className="text-4xl sm:text-5xl font-extrabold m-0 mb-3 text-[#e8e8e8]"
-                style={{ fontFamily: "'Syne', sans-serif" }}
-              >
+              <p className="text-4xl sm:text-5xl font-extrabold m-0 mb-3 text-[#e8e8e8]" style={{ fontFamily: "'Syne', sans-serif" }}>
                 {stats.orders.total}
               </p>
               <div className="flex flex-wrap gap-2">
-                <span className="bg-[#1a2a3a] text-[#60a5fa] rounded-md px-2.5 py-1 text-xs">{stats.orders.new} yangi</span>
+                <span className="bg-[#15233a] text-[#60a5fa] rounded-md px-2.5 py-1 text-xs">{stats.orders.new} yangi</span>
                 <span className="bg-[#2a2410] text-[#f0c040] rounded-md px-2.5 py-1 text-xs">{stats.orders.in_progress} jarayonda</span>
                 <span className="bg-[#142614] text-[#4ade80] rounded-md px-2.5 py-1 text-xs">{stats.orders.completed} tugagan</span>
               </div>
-            </div>
+            </Link>
 
             {/* Tasks */}
-            <div className="bg-[#1a1d27] rounded-2xl p-5 sm:p-6 border border-[#2a2d3a]">
+            <Link href="/admin/tasks" className="group bg-[#1a1d27] rounded-2xl p-5 sm:p-6 border border-[#2a2d3a] no-underline hover:border-[#3a3d4a] hover:bg-[#1d2030] hover:-translate-y-0.5 transition-all">
               <div className="flex justify-between items-start mb-4">
-                <p className="m-0 text-[#555] text-[11px] tracking-[1.5px] uppercase">Vazifalar</p>
-                <span className="text-2xl">📋</span>
+                <p className="m-0 text-[#666] text-[11px] tracking-[1.5px] uppercase">Vazifalar</p>
+                <span className="w-9 h-9 rounded-lg bg-[#142614] text-[#4ade80] flex items-center justify-center text-lg">📋</span>
               </div>
-              <p
-                className="text-4xl sm:text-5xl font-extrabold m-0 mb-3 text-[#e8e8e8]"
-                style={{ fontFamily: "'Syne', sans-serif" }}
-              >
+              <p className="text-4xl sm:text-5xl font-extrabold m-0 mb-3 text-[#e8e8e8]" style={{ fontFamily: "'Syne', sans-serif" }}>
                 {stats.tasks.total}
               </p>
               <div className="flex flex-wrap gap-2">
-                <span className="bg-[#1a2a3a] text-[#60a5fa] rounded-md px-2.5 py-1 text-xs">{stats.tasks.pending} kutilmoqda</span>
+                <span className="bg-[#15233a] text-[#60a5fa] rounded-md px-2.5 py-1 text-xs">{stats.tasks.pending} kutilmoqda</span>
                 <span className="bg-[#2a2410] text-[#f0c040] rounded-md px-2.5 py-1 text-xs">{stats.tasks.in_progress} jarayonda</span>
                 <span className="bg-[#142614] text-[#4ade80] rounded-md px-2.5 py-1 text-xs">{stats.tasks.completed} tugagan</span>
               </div>
-            </div>
+            </Link>
           </div>
 
           {/* ── Progress Bars ─────────────────────────────── */}
