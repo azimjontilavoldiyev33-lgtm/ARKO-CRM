@@ -83,10 +83,13 @@ interface Task {
   }
 
   // ─── StatCard ─────────────────────────────────────────────────────────────────
-  function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
+  function StatCard({ label, value, color, icon, chip }: { label: string; value: number; color: string; icon: string; chip: string }) {
     return (
       <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] p-4 sm:p-5">
-        <p className="text-[#555] text-[10px] sm:text-[11px] uppercase tracking-widest mb-2">{label}</p>
+        <div className="flex justify-between items-start mb-2">
+          <p className="text-[#666] text-[10px] sm:text-[11px] uppercase tracking-widest m-0">{label}</p>
+          <span className={`w-8 h-8 rounded-lg ${chip} ${color} flex items-center justify-center text-sm shrink-0`}>{icon}</span>
+        </div>
         <p className={`text-2xl sm:text-3xl font-extrabold ${color}`} style={{ fontFamily: "'Syne', sans-serif" }}>
           {value}
         </p>
@@ -271,6 +274,7 @@ interface Task {
     const [saving, setSaving]       = useState(false);
     const [toast, setToast]         = useState<string | null>(null);
     const [filterDept, setFilterDept] = useState('');
+    const [company, setCompany] = useState('');
 
     const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 2500); };
 
@@ -288,6 +292,7 @@ interface Task {
 
     useEffect(() => {
       fetchAll();
+      fetch('/api/me').then((r) => (r.ok ? r.json() : null)).then((d) => { if (d?.companyName) setCompany(d.companyName); }).catch(() => {});
       const es = new EventSource('/api/sse');
       es.onmessage = () => fetchAll();
       return () => es.close();
@@ -361,7 +366,7 @@ interface Task {
             {/* ── Header ── */}
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6 sm:mb-10">
               <div>
-                <p className="text-[#555] text-[11px] uppercase tracking-[2px] mb-1">Tabel</p>
+                <p className="text-[#f0c040] text-[11px] uppercase tracking-[2px] mb-1">{company || 'Tabel'}</p>
                 <h1
                   className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-br from-white to-[#888] bg-clip-text text-transparent m-0"
                   style={{ fontFamily: "'Syne', sans-serif" }}
@@ -380,10 +385,10 @@ interface Task {
 
             {/* ── Stats ── */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 sm:mb-8">
-              <StatCard label="Jami"       value={stats.total}       color="text-white"       />
-              <StatCard label="Kutilmoqda" value={stats.pending}     color="text-blue-400"    />
-              <StatCard label="Jarayonda"  value={stats.in_progress} color="text-amber-400"   />
-              <StatCard label="Tugallandi" value={stats.completed}   color="text-emerald-400" />
+              <StatCard label="Jami"       value={stats.total}       color="text-white"       icon="📋" chip="bg-[#22252f]" />
+              <StatCard label="Kutilmoqda" value={stats.pending}     color="text-blue-400"    icon="🕓" chip="bg-[#15233a]" />
+              <StatCard label="Jarayonda"  value={stats.in_progress} color="text-amber-400"   icon="⏳" chip="bg-[#2a2410]" />
+              <StatCard label="Tugallandi" value={stats.completed}   color="text-emerald-400" icon="✅" chip="bg-[#142614]" />
             </div>
 
             {/* ── Department Filter ── */}
