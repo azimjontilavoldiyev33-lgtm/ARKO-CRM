@@ -26,6 +26,8 @@ export default function WorkersPage() {
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [query, setQuery] = useState('');
+  const [company, setCompany] = useState('');
 const [form, setForm] = useState({ fullName: '', phoneNumber: '', position: '', salary: '' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -38,7 +40,23 @@ const [form, setForm] = useState({ fullName: '', phoneNumber: '', position: '', 
     setLoading(false);
   };
 
-  useEffect(() => { fetchWorkers(); }, []);
+  useEffect(() => {
+    fetchWorkers();
+    fetch('/api/me')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d?.companyName) setCompany(d.companyName); })
+      .catch(() => {});
+  }, []);
+
+  const q = query.trim().toLowerCase();
+  const filtered = q
+    ? workers.filter((w) =>
+        w.fullName.toLowerCase().includes(q) ||
+        w.phoneNumber.includes(q) ||
+        (w.position || '').toLowerCase().includes(q) ||
+        (w.code || '').includes(q)
+      )
+    : workers;
 
   const handleSubmit = async () => {
     if (!form.fullName || !form.phoneNumber) return;
@@ -85,7 +103,7 @@ const [form, setForm] = useState({ fullName: '', phoneNumber: '', position: '', 
       {/* ── Header ─────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8 sm:mb-10">
         <div>
-          <p className="text-[#555] text-[11px] tracking-[2px] uppercase mb-1.5">Tabel</p>
+          <p className="text-[#f0c040] text-[11px] tracking-[2px] uppercase mb-1.5">{company || 'Tabel'}</p>
           <h1
             className="text-3xl sm:text-4xl font-extrabold m-0 bg-gradient-to-br from-white to-[#888] bg-clip-text text-transparent"
             style={{ fontFamily: "'Syne', sans-serif" }}
@@ -105,12 +123,15 @@ const [form, setForm] = useState({ fullName: '', phoneNumber: '', position: '', 
       {/* ── Stat Cards ─────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-7 sm:mb-8">
         {[
-          { label: 'Jami ustalar',      value: workers.length,                                  color: 'text-[#f0c040]' },
-          { label: 'Lavozimli',         value: workers.filter(w => w.position).length,          color: 'text-[#4ade80]' },
-          { label: 'Oylik belgilangan', value: workers.filter(w => (w.salary ?? 0) > 0).length, color: 'text-[#60a5fa]' },
+          { label: 'Jami ustalar',      value: workers.length,                                  color: 'text-[#f0c040]', icon: '👷', chip: 'bg-[#2a2410]' },
+          { label: 'Lavozimli',         value: workers.filter(w => w.position).length,          color: 'text-[#4ade80]', icon: '🏷️', chip: 'bg-[#142614]' },
+          { label: 'Oylik belgilangan', value: workers.filter(w => (w.salary ?? 0) > 0).length, color: 'text-[#60a5fa]', icon: '💰', chip: 'bg-[#15233a]' },
         ].map((stat, i) => (
           <div key={i} className="bg-[#1a1d27] rounded-2xl px-5 py-4 sm:py-5 border border-[#2a2d3a]">
-            <p className="text-[#555] text-[11px] tracking-[1.5px] uppercase m-0 mb-2">{stat.label}</p>
+            <div className="flex justify-between items-start mb-2">
+              <p className="text-[#666] text-[11px] tracking-[1.5px] uppercase m-0">{stat.label}</p>
+              <span className={`w-8 h-8 rounded-lg ${stat.chip} ${stat.color} flex items-center justify-center text-sm shrink-0`}>{stat.icon}</span>
+            </div>
             <p
               className={`text-3xl sm:text-4xl font-extrabold m-0 ${stat.color}`}
               style={{ fontFamily: "'Syne', sans-serif" }}
@@ -123,10 +144,18 @@ const [form, setForm] = useState({ fullName: '', phoneNumber: '', position: '', 
 
       {/* ── Table card ─────────────────────────────────────── */}
       <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] overflow-hidden">
-        {/* Table header row */}
-        <div className="flex justify-between items-center px-5 sm:px-6 py-4 border-b border-[#2a2d3a]">
-          <p className="m-0 font-semibold text-[15px]">Barcha ustalar</p>
-          <p className="m-0 text-[#555] text-sm">{workers.length} ta</p>
+        {/* Table header row + qidiruv */}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 px-5 sm:px-6 py-4 border-b border-[#2a2d3a]">
+          <p className="m-0 font-semibold text-[15px]">Barcha ustalar <span className="text-[#555] font-normal">· {filtered.length}</span></p>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#555] text-sm pointer-events-none">🔍</span>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Qidirish (ism, telefon, kod)..."
+              className="w-full sm:w-72 bg-[#0f1117] border border-[#2a2d3a] rounded-lg pl-9 pr-3 py-2 text-sm text-[#e8e8e8] outline-none focus:border-[#f0c040] transition-colors placeholder:text-[#444]"
+            />
+          </div>
         </div>
 
         {loading ? (
@@ -135,6 +164,11 @@ const [form, setForm] = useState({ fullName: '', phoneNumber: '', position: '', 
           <div className="py-16 text-center text-[#555]">
             <p className="text-5xl m-0 mb-3">👷</p>
             <p className="m-0">Hali usta qo'shilmagan</p>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="py-16 text-center text-[#555]">
+            <p className="text-4xl m-0 mb-3">🔍</p>
+            <p className="m-0">&quot;{query}&quot; bo&apos;yicha topilmadi</p>
           </div>
         ) : (
           <>
@@ -154,7 +188,7 @@ const [form, setForm] = useState({ fullName: '', phoneNumber: '', position: '', 
                   </tr>
                 </thead>
                 <tbody>
-                  {workers.map((worker, i) => {
+                  {filtered.map((worker, i) => {
                     const av = AVATAR_COLORS[i % AVATAR_COLORS.length];
                     return (
                       <tr
@@ -205,7 +239,7 @@ const [form, setForm] = useState({ fullName: '', phoneNumber: '', position: '', 
 
             {/* ── Mobile cards (< md) ─── */}
             <div className="md:hidden divide-y divide-[#2a2d3a]">
-              {workers.map((worker, i) => {
+              {filtered.map((worker, i) => {
                 const av = AVATAR_COLORS[i % AVATAR_COLORS.length];
                 return (
                   <div key={worker._id} className="px-4 py-4 flex flex-col gap-3">
