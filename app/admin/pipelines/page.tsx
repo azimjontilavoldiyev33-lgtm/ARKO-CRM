@@ -51,11 +51,13 @@ export default function PipelinesPage() {
   const [saving, setSaving]   = useState(false);
   const [toast, setToast]     = useState('');
   const [pipelines, setPipelines] = useState<any[]>([]);
+  const [company, setCompany] = useState('');
 
   useEffect(() => {
     fetch('/api/workers').then(r => r.json()).then(setWorkers);
     fetch('/api/orders').then(r => r.json()).then(setOrders);
     fetch('/api/pipelines').then(r => r.json()).then(setPipelines);
+    fetch('/api/me').then(r => r.ok ? r.json() : null).then(d => { if (d?.companyName) setCompany(d.companyName); }).catch(() => {});
   }, []);
 
   function updateStep(i: number, key: keyof Step, value: string) {
@@ -113,8 +115,8 @@ export default function PipelinesPage() {
 
         {/* Header */}
         <div className="mb-8">
-          <p className="text-[#555] text-[11px] uppercase tracking-[2px] mb-1">Tabel</p>
-          <h1 className="text-3xl font-extrabold text-white" style={{ fontFamily: "'Syne', sans-serif" }}>
+          <p className="text-[#f0c040] text-[11px] uppercase tracking-[2px] mb-1">{company || 'Tabel'}</p>
+          <h1 className="text-3xl font-extrabold bg-gradient-to-br from-white to-[#888] bg-clip-text text-transparent m-0" style={{ fontFamily: "'Syne', sans-serif" }}>
             Ish zanjiri
           </h1>
         </div>
