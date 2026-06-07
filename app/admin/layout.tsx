@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 
 const navItems = [
@@ -18,6 +19,7 @@ const navItems = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [me, setMe] = useState<{ username: string; companyName: string; role: string } | null>(null);
   const sidebarRef = useRef<HTMLElement>(null);
 
   // Close sidebar on route change (mobile)
@@ -48,6 +50,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, []);
+
+  // Kirgan admin + korxona nomi (sidebar konteksti)
+  useEffect(() => {
+    fetch('/api/me')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d && !d.error) setMe(d); })
+      .catch(() => {});
+  }, []);
+
+  const companyLabel = me?.companyName || 'Korxona';
+  const userLabel = me?.username || 'Admin';
+  const avatarLetter = (me?.companyName || me?.username || 'T').charAt(0).toUpperCase();
 
   const currentLabel = navItems.find(({ href }) =>
     href === '/admin' ? pathname === '/admin' : pathname.startsWith(href)
@@ -175,22 +189,41 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </nav>
 
         {/* Footer */}
-        <div style={{ padding: '20px 24px', borderTop: '1px solid #1e2130' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ padding: '16px', borderTop: '1px solid #1e2130' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
             <div style={{
-              width: '32px', height: '32px',
+              width: '34px', height: '34px',
               borderRadius: '8px',
               background: '#f0c040',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '14px', fontWeight: 800,
               color: '#0f1117',
               fontFamily: "'Syne', sans-serif",
-            }}>A</div>
-            <div>
-              <p style={{ margin: 0, fontSize: '13px', color: '#e8e8e8', fontWeight: 500 }}>Admin</p>
-              <p style={{ margin: 0, fontSize: '11px', color: '#444' }}>Bosh operator</p>
+              flexShrink: 0,
+            }}>{avatarLetter}</div>
+            <div style={{ minWidth: 0 }}>
+              <p style={{ margin: 0, fontSize: '13px', color: '#e8e8e8', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={companyLabel}>{companyLabel}</p>
+              <p style={{ margin: 0, fontSize: '11px', color: '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{userLabel}</p>
             </div>
           </div>
+          <button
+            onClick={() => signOut({ callbackUrl: '/login' })}
+            style={{
+              width: '100%',
+              background: 'transparent',
+              border: '1px solid #2a2d3a',
+              color: '#888',
+              borderRadius: '8px',
+              padding: '8px',
+              fontSize: '12px',
+              cursor: 'pointer',
+              transition: 'all 0.15s',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = '#f87171'; e.currentTarget.style.borderColor = '#4a1a1a'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = '#888'; e.currentTarget.style.borderColor = '#2a2d3a'; }}
+          >
+            Chiqish
+          </button>
         </div>
       </aside>
 
@@ -239,14 +272,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             {currentLabel}
           </span>
 
-          {/* Avatar placeholder for visual balance */}
+          {/* Avatar — korxona nomi bosh harfi */}
           <div style={{
             width: '28px', height: '28px',
             borderRadius: '6px',
             background: '#f0c040',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '12px', fontWeight: 800, color: '#0f1117',
-          }}>A</div>
+          }}>{avatarLetter}</div>
         </header>
 
         <main style={{ flex: 1 }}>
