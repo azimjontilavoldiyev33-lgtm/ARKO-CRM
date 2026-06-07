@@ -45,14 +45,20 @@ function Toast({ msg }: { msg: string }) {
 }
 
 // ─── StatCard ─────────────────────────────────────────────────────────────────
-function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
+function StatCard({ label, value, color, icon, chip, active, onClick }: { label: string; value: number; color: string; icon: string; chip: string; active?: boolean; onClick?: () => void }) {
   return (
-    <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] p-4 sm:p-5">
-      <p className="text-[#555] text-[10px] sm:text-[11px] uppercase tracking-widest mb-2">{label}</p>
+    <button
+      onClick={onClick}
+      className={`text-left w-full bg-[#1a1d27] rounded-2xl border p-4 sm:p-5 transition ${active ? 'border-[#f0c040]' : 'border-[#2a2d3a]'} ${onClick ? 'cursor-pointer hover:border-[#3a3d4a]' : 'cursor-default'}`}
+    >
+      <div className="flex justify-between items-start mb-2">
+        <p className="text-[#666] text-[10px] sm:text-[11px] uppercase tracking-widest m-0">{label}</p>
+        <span className={`w-8 h-8 rounded-lg ${chip} ${color} flex items-center justify-center text-sm shrink-0`}>{icon}</span>
+      </div>
       <p className={`text-2xl sm:text-3xl font-extrabold ${color}`} style={{ fontFamily: "'Syne', sans-serif" }}>
         {value}
       </p>
-    </div>
+    </button>
   );
 }
 
@@ -283,6 +289,8 @@ export default function OrdersPage() {
   const [saving, setSaving]               = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [toast, setToast]                 = useState<string | null>(null);
+  const [filter, setFilter]               = useState<'all' | Order['status']>('all');
+  const [company, setCompany]             = useState('');
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 2500); };
 
@@ -292,7 +300,10 @@ export default function OrdersPage() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchOrders(); }, []);
+  useEffect(() => {
+    fetchOrders();
+    fetch('/api/me').then((r) => (r.ok ? r.json() : null)).then((d) => { if (d?.companyName) setCompany(d.companyName); }).catch(() => {});
+  }, []);
 
   const handleSubmit = async (form: FormState) => {
     setSaving(true);
@@ -328,6 +339,8 @@ export default function OrdersPage() {
     completed:   orders.filter(o => o.status === 'completed').length,
   };
 
+  const filtered = filter === 'all' ? orders : orders.filter(o => o.status === filter);
+
   return (
     <>
       <style>{`
@@ -348,7 +361,7 @@ export default function OrdersPage() {
           {/* ── Header ── */}
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6 sm:mb-10">
             <div>
-              <p className="text-[#555] text-[11px] uppercase tracking-[2px] mb-1">Tabel</p>
+              <p className="text-[#f0c040] text-[11px] uppercase tracking-[2px] mb-1">{company || 'Tabel'}</p>
               <h1
                 className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-br from-white to-[#888] bg-clip-text text-transparent m-0"
                 style={{ fontFamily: "'Syne', sans-serif" }}
@@ -367,10 +380,10 @@ export default function OrdersPage() {
 
           {/* ── Stats ── */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 sm:mb-8">
-            <StatCard label="Jami"       value={stats.total}       color="text-white"       />
-            <StatCard label="Yangi"      value={stats.new}         color="text-blue-400"    />
-            <StatCard label="Jarayonda"  value={stats.in_progress} color="text-amber-400"   />
-            <StatCard label="Tugallandi" value={stats.completed}   color="text-emerald-400" />
+            <StatCard label="Jami"       value={stats.total}       color="text-white"       icon="📦" chip="bg-[#22252f]" active={filter==='all'}         onClick={() => setFilter('all')} />
+            <StatCard label="Yangi"      value={stats.new}         color="text-blue-400"    icon="🆕" chip="bg-[#15233a]" active={filter==='new'}         onClick={() => setFilter('new')} />
+            <StatCard label="Jarayonda"  value={stats.in_progress} color="text-amber-400"   icon="⏳" chip="bg-[#2a2410]" active={filter==='in_progress'} onClick={() => setFilter('in_progress')} />
+            <StatCard label="Tugallandi" value={stats.completed}   color="text-emerald-400" icon="✅" chip="bg-[#142614]" active={filter==='completed'}   onClick={() => setFilter('completed')} />
           </div>
 
           {/* ── Content ── */}
@@ -387,11 +400,15 @@ export default function OrdersPage() {
                 Birinchi buyurtmani qo'shish
               </button>
             </div>
+          ) : filtered.length === 0 ? (
+            <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] py-16 text-center text-[#555]">
+              <p className="text-sm m-0">Bu holatda buyurtma yo&apos;q</p>
+            </div>
           ) : (
             <>
               {/* ── Mobile cards (< sm) ── */}
               <div className="sm:hidden space-y-3">
-                {orders.map(order => (
+                {filtered.map(order => (
                   <OrderCard
                     key={order._id}
                     order={order}
@@ -404,7 +421,7 @@ export default function OrdersPage() {
 
               {/* ── Desktop / tablet rows (sm+) ── */}
               <div className="hidden sm:flex flex-col gap-3">
-                {orders.map(order => {
+                {filtered.map(order => {
                   const overdue = isOverdue(order);
                   return (
                     <div
