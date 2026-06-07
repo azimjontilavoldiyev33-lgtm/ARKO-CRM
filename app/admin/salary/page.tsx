@@ -30,6 +30,7 @@ export default function SalaryPage() {
   const [year, setYear] = useState(now.getFullYear());
   const [sheet, setSheet] = useState<Sheet | null>(null);
   const [loading, setLoading] = useState(true);
+  const [company, setCompany] = useState('');
 
   const isArchive = year < now.getFullYear() || (year === now.getFullYear() && month < now.getMonth() + 1);
 
@@ -45,12 +46,16 @@ export default function SalaryPage() {
   }, [month, year]);
 
   useEffect(() => { fetchSheet(); }, [fetchSheet]);
+  useEffect(() => {
+    fetch('/api/me').then((r) => (r.ok ? r.json() : null)).then((d) => { if (d?.companyName) setCompany(d.companyName); }).catch(() => {});
+  }, []);
 
   const prevMonth = () => { if (month === 1) { setMonth(12); setYear((y) => y - 1); } else setMonth((m) => m - 1); };
   const nextMonth = () => { if (month === 12) { setMonth(1); setYear((y) => y + 1); } else setMonth((m) => m + 1); };
 
   const workers = sheet?.workers ?? [];
   const totalPayroll = workers.reduce((s, w) => s + w.totalSalary, 0);
+  const totalOvertime = workers.reduce((s, w) => s + w.overtimeHours, 0);
 
   // ── Eksport ──────────────────────────────────────────────
   const exportCSV = () => {
@@ -107,7 +112,7 @@ export default function SalaryPage() {
         {/* Header + month nav */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-5">
           <div>
-            <p className="text-[#555] text-[11px] uppercase tracking-[2px] mb-1">Tabel</p>
+            <p className="text-[#f0c040] text-[11px] uppercase tracking-[2px] mb-1">{company || 'Tabel'}</p>
             <h1 className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-br from-white to-[#888] bg-clip-text text-transparent m-0" style={{ fontFamily: "'Syne', sans-serif" }}>
               Oylik hisob
             </h1>
@@ -122,22 +127,39 @@ export default function SalaryPage() {
           </div>
         </div>
 
-        {/* Top bar: total + export */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
-          <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] px-5 py-3">
-            <span className="text-[#555] text-[11px] uppercase tracking-widest">Jami oylik fond</span>
-            <span className="ml-3 text-emerald-400 font-extrabold text-lg" style={{ fontFamily: "'Syne', sans-serif" }}>
-              {fmtMoney(totalPayroll)} so'm
-            </span>
+        {/* Stat cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+          <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] p-4 sm:p-5">
+            <div className="flex justify-between items-start mb-2">
+              <p className="text-[#666] text-[10px] sm:text-[11px] uppercase tracking-widest m-0">Jami oylik fond</p>
+              <span className="w-8 h-8 rounded-lg bg-[#142614] text-emerald-400 flex items-center justify-center text-sm shrink-0">💰</span>
+            </div>
+            <p className="text-xl sm:text-2xl font-extrabold text-emerald-400 m-0 whitespace-nowrap" style={{ fontFamily: "'Syne', sans-serif" }}>{fmtMoney(totalPayroll)} so&apos;m</p>
           </div>
-          <div className="flex gap-2">
-            <button onClick={exportCSV} disabled={!workers.length} className="px-4 py-2 rounded-xl bg-[#142614] border border-emerald-800/40 text-emerald-400 text-sm font-semibold hover:bg-[#173017] disabled:opacity-40 transition">
-              📥 Excel
-            </button>
-            <button onClick={exportPDF} disabled={!workers.length} className="px-4 py-2 rounded-xl bg-[#2a1414] border border-red-800/40 text-red-400 text-sm font-semibold hover:bg-[#331717] disabled:opacity-40 transition">
-              📥 PDF
-            </button>
+          <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] p-4 sm:p-5">
+            <div className="flex justify-between items-start mb-2">
+              <p className="text-[#666] text-[10px] sm:text-[11px] uppercase tracking-widest m-0">Ishchilar</p>
+              <span className="w-8 h-8 rounded-lg bg-[#2a2410] text-[#f0c040] flex items-center justify-center text-sm shrink-0">👷</span>
+            </div>
+            <p className="text-2xl sm:text-3xl font-extrabold text-[#f0c040] m-0" style={{ fontFamily: "'Syne', sans-serif" }}>{workers.length}</p>
           </div>
+          <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] p-4 sm:p-5">
+            <div className="flex justify-between items-start mb-2">
+              <p className="text-[#666] text-[10px] sm:text-[11px] uppercase tracking-widest m-0">Jami overtime</p>
+              <span className="w-8 h-8 rounded-lg bg-[#2a1a2a] text-[#c084fc] flex items-center justify-center text-sm shrink-0">⏰</span>
+            </div>
+            <p className="text-2xl sm:text-3xl font-extrabold text-[#c084fc] m-0" style={{ fontFamily: "'Syne', sans-serif" }}>{totalOvertime} <span className="text-base text-[#666]">soat</span></p>
+          </div>
+        </div>
+
+        {/* Export */}
+        <div className="flex gap-2 mb-5 sm:justify-end">
+          <button onClick={exportCSV} disabled={!workers.length} className="px-4 py-2 rounded-xl bg-[#142614] border border-emerald-800/40 text-emerald-400 text-sm font-semibold hover:bg-[#173017] disabled:opacity-40 transition">
+            📥 Excel
+          </button>
+          <button onClick={exportPDF} disabled={!workers.length} className="px-4 py-2 rounded-xl bg-[#2a1414] border border-red-800/40 text-red-400 text-sm font-semibold hover:bg-[#331717] disabled:opacity-40 transition">
+            📥 PDF
+          </button>
         </div>
 
         {loading ? (
