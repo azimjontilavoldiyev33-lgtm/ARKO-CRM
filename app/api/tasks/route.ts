@@ -25,6 +25,10 @@ export async function GET(req: Request) {
   // Admin sessiyasi bo'lsa — faqat o'z korxonasi vazifalari.
   // (Monitor/WorkerPanel ochiq qoladi — ular sessiyasiz; ko'p-ijara monitor 3-bosqichda.)
   const auth = await getAuth();
+  // Pro-only: Basic admin vazifalar ro'yxatini ko'ra olmaydi (monitor sessiyasiz ochiq qoladi)
+  if (auth?.companyId && auth.plan !== 'pro') {
+    return NextResponse.json({ error: 'Bu funksiya Pro tarifda mavjud' }, { status: 403 });
+  }
   if (auth?.companyId) query.company = auth.companyId;
 
   const tasks = await Task.find(query)
@@ -42,6 +46,7 @@ export async function POST(req: Request) {
 
   const auth = await getAuth();
   if (!auth?.companyId) return NextResponse.json({ error: 'Avtorizatsiya talab qilinadi' }, { status: 401 });
+  if (auth.plan !== 'pro') return NextResponse.json({ error: 'Bu funksiya Pro tarifda mavjud' }, { status: 403 });
   try {
     const task = await Task.create({ ...body, company: auth.companyId });
     notifyAll();

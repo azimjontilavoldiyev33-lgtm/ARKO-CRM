@@ -5,21 +5,22 @@ import { usePathname } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 
-const navItems = [
+// pro: true — faqat Pro tarifdagi korxonalar ko'radi (Basic'da yashiriladi)
+const navItems: { href: string; label: string; icon: string; pro?: boolean }[] = [
   { href: '/admin',                label: 'Dashboard',    icon: '📊' },
   { href: '/admin/workers',        label: 'Ustalar',      icon: '👷' },
-  { href: '/admin/orders',         label: 'Buyurtmalar',  icon: '📦' },
-  { href: '/admin/tasks',          label: 'Vazifalar',    icon: '📋' },
+  { href: '/admin/orders',         label: 'Buyurtmalar',  icon: '📦', pro: true },
+  { href: '/admin/tasks',          label: 'Vazifalar',    icon: '📋', pro: true },
   { href: '/admin/attendance',     label: 'Davomat',      icon: '⏰' },
   { href: '/admin/salary',         label: 'Oylik hisob',  icon: '💰' },
-  { href: '/admin/pipelines',      label: 'Ish zanjiri',  icon: '🔗' },
+  { href: '/admin/pipelines',      label: 'Ish zanjiri',  icon: '🔗', pro: true },
   { href: '/admin/office-location', label: 'Ofis hududi', icon: '📍' },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const [me, setMe] = useState<{ username: string; companyName: string; role: string } | null>(null);
+  const [me, setMe] = useState<{ username: string; companyName: string; role: string; plan?: string } | null>(null);
   const sidebarRef = useRef<HTMLElement>(null);
 
   // Close sidebar on route change (mobile)
@@ -51,10 +52,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
-  // Kirgan admin + korxona nomi (sidebar konteksti)
+  // Kirgan admin + korxona nomi + tarif (sidebar konteksti).
+  // 401 — korxona o'chirilgan yoki sessiya yo'q -> login'ga qaytariladi.
   useEffect(() => {
     fetch('/api/me')
-      .then((r) => (r.ok ? r.json() : null))
+      .then((r) => {
+        if (r.status === 401) { window.location.href = '/login'; return null; }
+        return r.ok ? r.json() : null;
+      })
       .then((d) => { if (d && !d.error) setMe(d); })
       .catch(() => {});
   }, []);
@@ -66,6 +71,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const currentLabel = navItems.find(({ href }) =>
     href === '/admin' ? pathname === '/admin' : pathname.startsWith(href)
   )?.label ?? 'Admin';
+
+  // Pro-only nav faqat Pro tarifda ko'rinadi (me yuklanmaguncha yashirin — xavfsiz default)
+  const isPro = me?.plan === 'pro';
+  const visibleNav = navItems.filter((item) => !item.pro || isPro);
+
+  // Basic admin to'g'ridan-to'g'ri Pro sahifani ochsa — bloklab, xabar ko'rsatamiz
+  const proRoutes = ['/admin/orders', '/admin/tasks', '/admin/pipelines'];
+  const blockedByPlan =
+    !isPro && me !== null && proRoutes.some((r) => pathname === r || pathname.startsWith(r + '/'));
 
   return (
     <div style={{
@@ -158,7 +172,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Nav */}
         <nav style={{ padding: '16px 12px', flex: 1 }}>
-          {navItems.map((item) => {
+          {visibleNav.map((item) => {
             const isActive =
               item.href === '/admin' ? pathname === '/admin' : pathname.startsWith(item.href);
             return (
@@ -283,7 +297,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </header>
 
         <main style={{ flex: 1 }}>
-          {children}
+          {blockedByPlan ? (
+            <div style={{ minHeight: '70vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '24px' }}>
+              <div style={{ fontSize: '44px', marginBottom: '16px' }}>🔒</div>
+              <h2 style={{ fontFamily: "'Syne', sans-serif", color: '#e8e8e8', fontSize: '22px', margin: '0 0 8px' }}>Bu bo&apos;lim Pro tarifda</h2>
+              <p style={{ color: '#888', fontSize: '14px', maxWidth: '380px', margin: 0, lineHeight: 1.6 }}>
+                Buyurtma, vazifa va ish zanjiri — Pro tarif imkoniyatlari. Yoqish uchun administrator bilan bog&apos;laning.
+              </p>
+            </div>
+          ) : children}
         </main>
       </div>
 

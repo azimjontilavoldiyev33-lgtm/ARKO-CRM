@@ -21,5 +21,6 @@ export async function GET() {
     username: admin?.username || 'Admin',
     role: auth.role,
     companyName,
+    plan: auth.plan,
   });
 }

@@ -6,6 +6,7 @@ import { getAuth } from '@/lib/auth';
 export async function GET() {
   const auth = await getAuth();
   if (!auth?.companyId) return NextResponse.json({ error: 'Avtorizatsiya talab qilinadi' }, { status: 401 });
+  if (auth.plan !== 'pro') return NextResponse.json({ error: 'Bu funksiya Pro tarifda mavjud' }, { status: 403 });
   await connectDB();
   const orders = await Order.find({ company: auth.companyId }).sort({ createdAt: -1 });
   return NextResponse.json(orders);
@@ -14,6 +15,7 @@ export async function GET() {
 export async function POST(req: Request) {
   const auth = await getAuth();
   if (!auth?.companyId) return NextResponse.json({ error: 'Avtorizatsiya talab qilinadi' }, { status: 401 });
+  if (auth.plan !== 'pro') return NextResponse.json({ error: 'Bu funksiya Pro tarifda mavjud' }, { status: 403 });
   await connectDB();
   const body = await req.json();
   try {

@@ -6,6 +6,7 @@ import { getAuth } from '@/lib/auth';
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await getAuth();
   if (!auth?.companyId) return NextResponse.json({ error: 'Avtorizatsiya talab qilinadi' }, { status: 401 });
+  if (auth.plan !== 'pro') return NextResponse.json({ error: 'Bu funksiya Pro tarifda mavjud' }, { status: 403 });
   const { id } = await params;
   await connectDB();
   await Order.findOneAndDelete({ _id: id, company: auth.companyId });
@@ -15,6 +16,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await getAuth();
   if (!auth?.companyId) return NextResponse.json({ error: 'Avtorizatsiya talab qilinadi' }, { status: 401 });
+  if (auth.plan !== 'pro') return NextResponse.json({ error: 'Bu funksiya Pro tarifda mavjud' }, { status: 403 });
   const { id } = await params;
   await connectDB();
   const body = await req.json();

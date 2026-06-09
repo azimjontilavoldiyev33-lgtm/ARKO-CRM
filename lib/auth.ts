@@ -87,15 +87,29 @@ export interface AuthInfo {
   companyId: string | null;
   role: 'admin' | 'superadmin';
   adminId: string;
+  plan: 'basic' | 'pro';   // korxona tarifi (Pro-only funksiyalar uchun)
 }
 
-// Joriy admin sessiyasidan companyId / role olish (API route'larda ishlatiladi)
+// Joriy admin sessiyasidan companyId / role / tarif olish (API route'larda ishlatiladi).
+// Korxona FAOL bo'lishi har so'rovda tekshiriladi — control-plane korxonani o'chirsa,
+// admin (ochiq sessiyasi bo'lsa ham) darhol bloklanadi.
 export async function getAuth(): Promise<AuthInfo | null> {
   const session = await getServerSession(authOptions);
   if (!session) return null;
-  return {
-    companyId: session.companyId ?? null,
-    role: session.role ?? 'admin',
-    adminId: session.adminId ?? '',
-  };
+
+  const role = (session.role ?? 'admin') as 'admin' | 'superadmin';
+  const adminId = session.adminId ?? '';
+  const companyId = session.companyId ?? null;
+
+  // Superadmin — korxona cheklovisiz, to'liq huquq
+  if (role === 'superadmin') {
+    return { companyId, role, adminId, plan: 'pro' };
+  }
+
+  // Oddiy admin — korxona mavjud va FAOL bo'lishi shart; tarif shu yerdan olinadi
+  if (!companyId) return null;
+  await connectDB();
+  const company = await Company.findById(companyId).select('isActive plan');
+  if (!company || company.isActive === false) return null;
+  return { companyId, role, adminId, plan: company.plan === 'basic' ? 'basic' : 'pro' };
 }
