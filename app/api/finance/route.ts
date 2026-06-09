@@ -41,6 +41,14 @@ export async function GET(req: Request) {
   const income = monthTx.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const expense = monthTx.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
 
+  // Oylik fond faqat FAOL oyga (yozuv bor) yoki JORIY oyga qo'llanadi —
+  // ma'lumotsiz o'tgan oylar grafikda soxta zarar ko'rsatmasligi uchun.
+  const nowD = new Date();
+  const nowMonth = nowD.getUTCMonth() + 1, nowYear = nowD.getUTCFullYear();
+  const effPayroll = (y: number, m: number, inc: number, exp: number) =>
+    (y === nowYear && m === nowMonth) || inc > 0 || exp > 0 ? payroll : 0;
+  const monthPayroll = effPayroll(year, month, income, expense);
+
   // Trend (6 oy, tanlangan oy oxirgi)
   const trend: any[] = [];
   for (let i = 5; i >= 0; i--) {
@@ -52,15 +60,16 @@ export async function GET(req: Request) {
       const d = new Date(t.date);
       if (d >= r.from && d < r.to) { if (t.type === 'income') inc += t.amount; else exp += t.amount; }
     }
-    trend.push({ label: MONTHS_SHORT[tm - 1], year: ty, month: tm, income: inc, expense: exp, payroll, profit: inc - exp - payroll });
+    const mp = effPayroll(ty, tm, inc, exp);
+    trend.push({ label: MONTHS_SHORT[tm - 1], year: ty, month: tm, income: inc, expense: exp, payroll: mp, profit: inc - exp - mp });
   }
 
   return NextResponse.json({
     month, year,
-    payroll,
+    payroll: monthPayroll,
     income,
     expense,
-    profit: income - expense - payroll,
+    profit: income - expense - monthPayroll,
     transactions: monthTx.map((t) => ({
       _id: String(t._id),
       type: t.type,
