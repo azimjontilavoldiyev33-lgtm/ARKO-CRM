@@ -9,6 +9,9 @@ interface Row {
   completed: number;
   inProgress: number;
   pending: number;
+  onTime: number;
+  late: number;
+  points: number;
   onTimeRate: number | null;
   avgRating: number | null;
   workDays: number;
@@ -17,9 +20,12 @@ interface Row {
 }
 interface Data {
   period: string;
+  pointValue: number;
   workers: Row[];
-  summary: { totalCompleted: number; totalHours: number; avgOnTime: number | null; top: string | null };
+  summary: { totalCompleted: number; totalHours: number; totalPoints: number; avgOnTime: number | null; top: string | null };
 }
+
+const fmtMoney = (n: number) => Math.round(n).toLocaleString('uz-UZ');
 
 const PERIODS: { key: string; label: string }[] = [
   { key: 'month', label: 'Bu oy' },
@@ -32,17 +38,32 @@ export default function KpiPage() {
   const [data, setData] = useState<Data | null>(null);
   const [loading, setLoading] = useState(true);
   const [company, setCompany] = useState('');
+  const [pvDraft, setPvDraft] = useState('');
+  const [savingPv, setSavingPv] = useState(false);
+  const [pvSaved, setPvSaved] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch(`/api/kpi?period=${period}`);
       const d = await res.json();
-      if (!d.error) setData(d);
+      if (!d.error) { setData(d); setPvDraft(d.pointValue ? String(d.pointValue) : ''); }
     } finally {
       setLoading(false);
     }
   }, [period]);
+
+  const savePointValue = async () => {
+    setSavingPv(true);
+    try {
+      await fetch('/api/settings', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pointValue: pvDraft ? Number(pvDraft) : 0 }) });
+      setPvSaved(true);
+      setTimeout(() => setPvSaved(false), 2000);
+      fetchData();
+    } finally {
+      setSavingPv(false);
+    }
+  };
 
   useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => {
@@ -51,6 +72,7 @@ export default function KpiPage() {
 
   const workers = data?.workers ?? [];
   const s = data?.summary;
+  const pv = data?.pointValue ?? 0;
 
   return (
     <div className="min-h-screen bg-[#0f1117] text-[#e8e8e8]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
@@ -80,13 +102,20 @@ export default function KpiPage() {
         </div>
 
         {/* Stat cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
           <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] p-4 sm:p-5">
             <div className="flex justify-between items-start mb-2">
               <p className="text-[#666] text-[10px] sm:text-[11px] uppercase tracking-widest m-0">Bajarilgan vazifa</p>
               <span className="w-8 h-8 rounded-lg bg-[#142614] text-emerald-400 flex items-center justify-center text-sm shrink-0">✅</span>
             </div>
             <p className="text-2xl sm:text-3xl font-extrabold text-emerald-400 m-0" style={{ fontFamily: "'Syne', sans-serif" }}>{s?.totalCompleted ?? 0}</p>
+          </div>
+          <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] p-4 sm:p-5">
+            <div className="flex justify-between items-start mb-2">
+              <p className="text-[#666] text-[10px] sm:text-[11px] uppercase tracking-widest m-0">Jami ball</p>
+              <span className="w-8 h-8 rounded-lg bg-[#15233a] text-blue-400 flex items-center justify-center text-sm shrink-0">⚖️</span>
+            </div>
+            <p className={`text-2xl sm:text-3xl font-extrabold m-0 ${(s?.totalPoints ?? 0) > 0 ? 'text-emerald-400' : (s?.totalPoints ?? 0) < 0 ? 'text-red-400' : 'text-white'}`} style={{ fontFamily: "'Syne', sans-serif" }}>{(s?.totalPoints ?? 0) > 0 ? '+' : ''}{s?.totalPoints ?? 0}</p>
           </div>
           <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] p-4 sm:p-5">
             <div className="flex justify-between items-start mb-2">
@@ -104,6 +133,22 @@ export default function KpiPage() {
           </div>
         </div>
 
+        {/* Ball qiymati sozlamasi */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 bg-[#1a1d27] border border-[#2a2d3a] rounded-2xl px-4 py-3 mb-5">
+          <span className="text-sm text-[#aaa]">⚖️ <b className="text-white">1 ball</b> =</span>
+          <input
+            inputMode="numeric"
+            value={pvDraft ? Number(pvDraft).toLocaleString('uz-UZ') : ''}
+            onChange={(e) => setPvDraft(e.target.value.replace(/[^0-9]/g, ''))}
+            placeholder="0"
+            className="w-32 bg-[#0f1117] border border-[#2a2d3a] rounded-lg px-3 py-2 text-sm text-[#e8e8e8] outline-none focus:border-[#f0c040] transition"
+          />
+          <span className="text-sm text-[#888]">so&apos;m</span>
+          <button onClick={savePointValue} disabled={savingPv} className="bg-[#f0c040] text-[#0f1117] rounded-lg px-4 py-2 text-sm font-semibold hover:opacity-90 disabled:opacity-50 transition">{savingPv ? '...' : 'Saqlash'}</button>
+          {pvSaved && <span className="text-emerald-400 text-xs font-medium">✓ saqlandi</span>}
+          <span className="ml-auto text-[11px] text-[#555] hidden sm:block">Oylik hisobda ball shu qiymatda qo&apos;shiladi/ushlanadi · 0 = o&apos;chiq</span>
+        </div>
+
         {loading ? (
           <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] py-16 flex flex-col items-center gap-3 text-[#555]">
             <div className="w-8 h-8 rounded-full border-2 border-[#f0c040] border-t-transparent animate-spin" />
@@ -116,11 +161,12 @@ export default function KpiPage() {
           </div>
         ) : (
           <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] overflow-x-auto">
-            <table className="w-full border-collapse text-sm min-w-[640px]">
+            <table className="w-full border-collapse text-sm min-w-[720px]">
               <thead>
                 <tr className="bg-[#14161f]">
                   <th className="px-4 py-3 text-left text-[#555] text-[11px] uppercase tracking-widest font-medium">Usta</th>
                   <th className="px-3 py-3 text-center text-emerald-400 text-[11px] uppercase tracking-widest font-medium">Bajarilgan</th>
+                  <th className="px-3 py-3 text-center text-blue-400 text-[11px] uppercase tracking-widest font-medium">Ball</th>
                   <th className="px-3 py-3 text-center text-[#f0c040] text-[11px] uppercase tracking-widest font-medium">O&apos;z vaqtida</th>
                   <th className="px-3 py-3 text-center text-[#c084fc] text-[11px] uppercase tracking-widest font-medium">Baho</th>
                   <th className="px-3 py-3 text-center text-[#555] text-[11px] uppercase tracking-widest font-medium">Kun</th>
@@ -144,6 +190,10 @@ export default function KpiPage() {
                       </p>
                     </td>
                     <td className="px-3 py-3 text-center font-bold text-emerald-400">{w.completed}</td>
+                    <td className="px-3 py-3 text-center">
+                      <span className={`font-bold ${w.points > 0 ? 'text-emerald-400' : w.points < 0 ? 'text-red-400' : 'text-[#666]'}`}>{w.points > 0 ? '+' : ''}{w.points}</span>
+                      {pv > 0 && w.points !== 0 && <div className={`text-[10px] ${w.points > 0 ? 'text-emerald-400/70' : 'text-red-400/70'}`}>{w.points > 0 ? '+' : '−'}{fmtMoney(Math.abs(w.points * pv))}</div>}
+                    </td>
                     <td className="px-3 py-3 text-center font-semibold text-[#f0c040]">{w.onTimeRate != null ? w.onTimeRate + '%' : '—'}</td>
                     <td className="px-3 py-3 text-center font-semibold text-[#c084fc]">{w.avgRating != null ? '⭐ ' + w.avgRating : '—'}</td>
                     <td className="px-3 py-3 text-center text-white">{w.workDays}</td>
@@ -157,7 +207,8 @@ export default function KpiPage() {
         )}
 
         <p className="text-[#444] text-[11px] mt-3">
-          Vazifa (status/deadline/baho) va davomat (kelish-ketish)dan avtomatik hisoblanadi · o&apos;z vaqtida % = belgilangan muddatda bajarilgan vazifalar ulushi
+          Vazifa (status/deadline/baho) va davomat (kelish-ketish)dan avtomatik hisoblanadi · o&apos;z vaqtida % = belgilangan muddatda bajarilgan vazifalar ulushi ·
+          <b className="text-[#666]"> Ball</b> = o&apos;z vaqtida bajarilgan (+1) − kechikkan (−1); oylik hisobida ball qiymatiga ko&apos;paytirilib qo&apos;shiladi/ushlanadi
         </p>
       </div>
     </div>

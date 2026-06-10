@@ -12,9 +12,11 @@ export async function GET() {
 
   const admin = await Admin.findById(auth.adminId).select('username role');
   let companyName = '';
+  let pointValue = 0;
   if (auth.companyId) {
-    const company = await Company.findById(auth.companyId).select('name');
+    const company = await Company.findById(auth.companyId).select('name pointValue');
     companyName = company?.name || '';
+    pointValue = company?.pointValue || 0;
   }
 
   return NextResponse.json({
@@ -22,5 +24,6 @@ export async function GET() {
     role: auth.role,
     companyName,
     plan: auth.plan,
+    pointValue,
   });
 }

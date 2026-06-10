@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Worker from '@/models/Worker';
 import Attendance from '@/models/Attendance';
+import Task from '@/models/Task';
+import Company from '@/models/Company';
 import { getAuth } from '@/lib/auth';
 
 const WORK_HOURS = 8;   // standart ish kuni
@@ -49,6 +51,19 @@ export async function GET(req: Request) {
   const workers = await Worker.find({ company: auth.companyId }).sort({ fullName: 1 });
   const records = await Attendance.find({ company: auth.companyId, checkIn: { $gte: from, $lt: to } });
 
+  // Ball: shu oyda BAJARILGAN vazifalar — o'z vaqtida +1, kechikkan −1. Oylikka ball×qiymat qo'shiladi/ushlanadi.
+  const tasks = await Task.find({ company: auth.companyId, status: 'completed', completedAt: { $gte: from, $lt: to } }).select('worker deadline completedAt');
+  const company = await Company.findById(auth.companyId).select('pointValue');
+  const pointValue = company?.pointValue || 0;
+  const pMap: Record<string, { onTime: number; late: number }> = {};
+  for (const t of tasks) {
+    const wid = String(t.worker);
+    const p = (pMap[wid] ??= { onTime: 0, late: 0 });
+    if (t.completedAt && t.deadline) {
+      if (new Date(t.completedAt) <= new Date(t.deadline)) p.onTime++; else p.late++;
+    }
+  }
+
   // workerId -> { kun: {in, out, otMin} }
   const map: Record<string, Record<number, DayCell>> = {};
 
@@ -91,7 +106,10 @@ export async function GET(req: Request) {
     const dailyRate = hourlyRate * WORK_HOURS;
     const overtimePay = (otMin / 60) * hourlyRate;
     const baseEarned = dailyRate * workDays;
-    const totalSalary = baseEarned + overtimePay;
+    const pts = pMap[wid] || { onTime: 0, late: 0 };
+    const points = pts.onTime - pts.late;
+    const pointBonus = Math.round(points * pointValue);
+    const totalSalary = baseEarned + overtimePay + pointBonus;
 
     return {
       _id: wid,
@@ -103,9 +121,11 @@ export async function GET(req: Request) {
       overtimeHours: +(otMin / 60).toFixed(1),
       overtimePay: Math.round(overtimePay),
       baseEarned: Math.round(baseEarned),
+      points,
+      pointBonus,
       totalSalary: Math.round(totalSalary),
     };
   });
 
-  return NextResponse.json({ month, year, daysInMonth, totalWorkDays, workers: result });
+  return NextResponse.json({ month, year, daysInMonth, totalWorkDays, pointValue, workers: result });
 }

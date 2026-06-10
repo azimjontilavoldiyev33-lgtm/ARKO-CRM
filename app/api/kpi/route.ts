@@ -3,6 +3,7 @@ import { connectDB } from '@/lib/mongodb';
 import Worker from '@/models/Worker';
 import Task from '@/models/Task';
 import Attendance from '@/models/Attendance';
+import Company from '@/models/Company';
 import { getAuth } from '@/lib/auth';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -36,20 +37,26 @@ export async function GET(req: Request) {
   const period = searchParams.get('period') || 'month';
   const from = rangeFrom(period);
 
-  const [workers, tasks, records] = await Promise.all([
+  const [workers, tasks, records, company] = await Promise.all([
     Worker.find({ company: auth.companyId }).select('fullName position').sort({ fullName: 1 }),
     Task.find({ company: auth.companyId, createdAt: { $gte: from } }).select('worker status deadline completedAt rating'),
     Attendance.find({ company: auth.companyId, checkIn: { $gte: from } }).select('worker checkIn checkOut'),
+    Company.findById(auth.companyId).select('pointValue'),
   ]);
 
-  // Vazifa metrikalari (worker bo'yicha)
+  const pointValue = (company as any)?.pointValue || 0;
+
+  // Vazifa metrikalari (worker bo'yicha). Ball: o'z vaqtida +1, kechikkan −1.
   const tMap: Record<string, any> = {};
   for (const t of tasks as any[]) {
     const wid = String(t.worker);
-    const m = (tMap[wid] ??= { completed: 0, inProgress: 0, pending: 0, onTime: 0, ratingSum: 0, ratingCount: 0 });
+    const m = (tMap[wid] ??= { completed: 0, inProgress: 0, pending: 0, onTime: 0, late: 0, ratingSum: 0, ratingCount: 0 });
     if (t.status === 'completed') {
       m.completed++;
-      if (t.completedAt && t.deadline && new Date(t.completedAt) <= new Date(t.deadline)) m.onTime++;
+      if (t.completedAt && t.deadline) {
+        if (new Date(t.completedAt) <= new Date(t.deadline)) m.onTime++;
+        else m.late++;
+      }
       if (typeof t.rating === 'number') { m.ratingSum += t.rating; m.ratingCount++; }
     } else if (t.status === 'in_progress') {
       m.inProgress++;
@@ -74,8 +81,9 @@ export async function GET(req: Request) {
 
   const result = (workers as any[]).map((w) => {
     const wid = String(w._id);
-    const t = tMap[wid] || { completed: 0, inProgress: 0, pending: 0, onTime: 0, ratingSum: 0, ratingCount: 0 };
+    const t = tMap[wid] || { completed: 0, inProgress: 0, pending: 0, onTime: 0, late: 0, ratingSum: 0, ratingCount: 0 };
     const a = aMap[wid] || { dates: new Set<string>(), netHours: 0, otMin: 0 };
+    const points = t.onTime - t.late;
     return {
       _id: wid,
       fullName: w.fullName,
@@ -83,6 +91,9 @@ export async function GET(req: Request) {
       completed: t.completed,
       inProgress: t.inProgress,
       pending: t.pending,
+      onTime: t.onTime,
+      late: t.late,
+      points,
       onTimeRate: t.completed > 0 ? Math.round((t.onTime / t.completed) * 100) : null,
       avgRating: t.ratingCount > 0 ? +(t.ratingSum / t.ratingCount).toFixed(1) : null,
       workDays: a.dates.size,
@@ -91,18 +102,20 @@ export async function GET(req: Request) {
     };
   });
 
-  // Eng samaralidan tartiblash (bajarilgan, keyin o'z vaqtida %)
-  result.sort((x, y) => y.completed - x.completed || (y.onTimeRate ?? 0) - (x.onTimeRate ?? 0));
+  // Eng samaralidan tartiblash (ball, keyin bajarilgan, keyin o'z vaqtida %)
+  result.sort((x, y) => y.points - x.points || y.completed - x.completed || (y.onTimeRate ?? 0) - (x.onTimeRate ?? 0));
 
   const totalCompleted = result.reduce((s, w) => s + w.completed, 0);
   const totalHours = result.reduce((s, w) => s + w.hours, 0);
+  const totalPoints = result.reduce((s, w) => s + w.points, 0);
   const rated = result.filter((w) => w.onTimeRate !== null);
   const avgOnTime = rated.length ? Math.round(rated.reduce((s, w) => s + (w.onTimeRate || 0), 0) / rated.length) : null;
   const top = result[0] && result[0].completed > 0 ? result[0].fullName : null;
 
   return NextResponse.json({
     period,
+    pointValue,
     workers: result,
-    summary: { totalCompleted, totalHours, avgOnTime, top },
+    summary: { totalCompleted, totalHours, totalPoints, avgOnTime, top },
   });
 }

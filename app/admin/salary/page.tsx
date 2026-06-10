@@ -11,6 +11,8 @@ interface Row {
   overtimeHours: number;
   overtimePay: number;
   baseEarned: number;
+  points: number;
+  pointBonus: number;
   totalSalary: number;
 }
 interface Sheet {
@@ -18,6 +20,7 @@ interface Sheet {
   year: number;
   daysInMonth: number;
   totalWorkDays: number;
+  pointValue: number;
   workers: Row[];
 }
 
@@ -56,11 +59,13 @@ export default function SalaryPage() {
   const workers = sheet?.workers ?? [];
   const totalPayroll = workers.reduce((s, w) => s + w.totalSalary, 0);
   const totalOvertime = workers.reduce((s, w) => s + w.overtimeHours, 0);
+  const hasPoints = (sheet?.pointValue ?? 0) > 0;
+  const totalPointBonus = workers.reduce((s, w) => s + w.pointBonus, 0);
 
   // ── Eksport ──────────────────────────────────────────────
   const exportCSV = () => {
-    const head = ['Ishchi', 'Lavozim', 'Ishlagan kun', 'Overtime (soat)', "Oylik (so'm)"];
-    const rows = workers.map((w) => [w.fullName, w.position, w.workDays, w.overtimeHours, w.totalSalary]);
+    const head = ['Ishchi', 'Lavozim', 'Ishlagan kun', 'Overtime (soat)', ...(hasPoints ? ['Ball', "Ball summa (so'm)"] : []), "Oylik (so'm)"];
+    const rows = workers.map((w) => [w.fullName, w.position, w.workDays, w.overtimeHours, ...(hasPoints ? [w.points, w.pointBonus] : []), w.totalSalary]);
     const csv = '﻿' + [head, ...rows].map((r) => r.map((c) => `"${c}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a');
@@ -77,6 +82,7 @@ export default function SalaryPage() {
           <td>${w.fullName}</td><td>${w.position}</td>
           <td style="text-align:center">${w.workDays}</td>
           <td style="text-align:center">${w.overtimeHours} h</td>
+          ${hasPoints ? `<td style="text-align:center">${w.points > 0 ? '+' : ''}${w.points}${w.pointBonus ? ` (${w.pointBonus > 0 ? '+' : '−'}${fmtMoney(Math.abs(w.pointBonus))})` : ''}</td>` : ''}
           <td style="text-align:right">${fmtMoney(w.totalSalary)} so'm</td>
         </tr>`
       )
@@ -93,9 +99,9 @@ export default function SalaryPage() {
       <h1>Oylik hisobot — ${MONTHS[month - 1]} ${year}</h1>
       <p>Tabel · ish kunlari (yakshanbasiz): ${sheet?.totalWorkDays ?? '—'}</p>
       <table>
-        <thead><tr><th>Ishchi</th><th>Lavozim</th><th style="text-align:center">Ishlagan kun</th><th style="text-align:center">Overtime</th><th style="text-align:right">Oylik</th></tr></thead>
+        <thead><tr><th>Ishchi</th><th>Lavozim</th><th style="text-align:center">Ishlagan kun</th><th style="text-align:center">Overtime</th>${hasPoints ? '<th style="text-align:center">Ball</th>' : ''}<th style="text-align:right">Oylik</th></tr></thead>
         <tbody>${rows}</tbody>
-        <tfoot><tr><td colspan="4">JAMI</td><td style="text-align:right">${fmtMoney(totalPayroll)} so'm</td></tr></tfoot>
+        <tfoot><tr><td colspan="${hasPoints ? 5 : 4}">JAMI</td><td style="text-align:right">${fmtMoney(totalPayroll)} so'm</td></tr></tfoot>
       </table>
       <script>window.onload=function(){window.print();}</script>
       </body></html>`;
@@ -173,13 +179,14 @@ export default function SalaryPage() {
             <p className="text-sm">Ishchi yo'q yoki ma'lumot topilmadi</p>
           </div>
         ) : (
-          <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] overflow-hidden">
+          <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="bg-[#14161f]">
                   <th className="px-4 py-3 text-left text-[#555] text-[11px] uppercase tracking-widest font-medium">Ishchi</th>
                   <th className="px-4 py-3 text-center text-[#555] text-[11px] uppercase tracking-widest font-medium">Ishlagan kun</th>
                   <th className="px-4 py-3 text-center text-amber-400 text-[11px] uppercase tracking-widest font-medium">Overtime</th>
+                  {hasPoints && <th className="px-4 py-3 text-center text-blue-400 text-[11px] uppercase tracking-widest font-medium">Ball</th>}
                   <th className="px-4 py-3 text-right text-emerald-400 text-[11px] uppercase tracking-widest font-medium">Oylik</th>
                 </tr>
               </thead>
@@ -192,6 +199,12 @@ export default function SalaryPage() {
                     </td>
                     <td className="px-4 py-3 text-center font-semibold text-white">{w.workDays}</td>
                     <td className="px-4 py-3 text-center text-amber-400 font-semibold">{w.overtimeHours} h</td>
+                    {hasPoints && (
+                      <td className="px-4 py-3 text-center whitespace-nowrap">
+                        <span className={`font-semibold ${w.points > 0 ? 'text-emerald-400' : w.points < 0 ? 'text-red-400' : 'text-[#666]'}`}>{w.points > 0 ? '+' : ''}{w.points}</span>
+                        {w.pointBonus !== 0 && <div className={`text-[11px] ${w.pointBonus > 0 ? 'text-emerald-400/70' : 'text-red-400/70'}`}>{w.pointBonus > 0 ? '+' : '−'}{fmtMoney(Math.abs(w.pointBonus))}</div>}
+                      </td>
+                    )}
                     <td className="px-4 py-3 text-right text-emerald-400 font-bold whitespace-nowrap">{fmtMoney(w.totalSalary)}</td>
                   </tr>
                 ))}
@@ -202,6 +215,7 @@ export default function SalaryPage() {
 
         <p className="text-[#444] text-[11px] mt-3">
           Oylik kelish-ketishdan avtomatik hisoblanadi · ish kunlari (yakshanbasiz): {sheet?.totalWorkDays ?? '—'} · maoshni Ustalar profilida belgilang · kunlik kelish/ketish — <b className="text-[#666]">Davomat</b> bo'limida
+          {hasPoints && <> · <b className="text-[#666]">Ball</b> KPI'dan (1 ball = {fmtMoney(sheet?.pointValue ?? 0)} so'm) — jami {totalPointBonus >= 0 ? '+' : '−'}{fmtMoney(Math.abs(totalPointBonus))} so'm ta'sir qildi</>}
         </p>
       </div>
     </div>
