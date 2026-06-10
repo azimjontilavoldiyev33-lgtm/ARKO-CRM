@@ -6,6 +6,7 @@ export interface IOrder extends Document {
   clientName: string;
   deadline: Date;
   status: 'new' | 'in_progress' | 'completed';
+  amount: number;
   images: string[];
   createdAt: Date;
   company?: mongoose.Types.ObjectId;
@@ -22,6 +23,7 @@ const OrderSchema = new Schema<IOrder>({
     enum: ['new', 'in_progress', 'completed'],
     default: 'new',
   },
+  amount: { type: Number, default: 0 },
   images: [{ type: String }],
   createdAt: { type: Date, default: Date.now },
   company: { type: Schema.Types.ObjectId, ref: 'Company' },

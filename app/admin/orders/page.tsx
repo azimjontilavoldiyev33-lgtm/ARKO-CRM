@@ -9,6 +9,7 @@ interface Order {
   clientName: string;
   deadline: string;
   status: 'new' | 'in_progress' | 'completed';
+  amount: number;
   images: string[];
   createdAt: string;
 }
@@ -17,6 +18,7 @@ type FormState = {
   title: string;
   clientName: string;
   deadline: string;
+  amount: string;
   images: string[];
 };
 
@@ -28,9 +30,10 @@ const STATUS_META = {
 } as const;
 
 const fmtDate  = (d: string) => new Date(d).toLocaleDateString('uz-UZ');
+const fmtMoney = (n: number) => Math.round(n).toLocaleString('uz-UZ');
 const isOverdue = (o: Order) => new Date(o.deadline) < new Date() && o.status !== 'completed';
 
-const EMPTY_FORM: FormState = { title: '', clientName: '', deadline: '', images: [] };
+const EMPTY_FORM: FormState = { title: '', clientName: '', deadline: '', amount: '', images: [] };
 
 const inputCls =
   'w-full bg-[#0f1117] border border-[#2a2d3a] rounded-xl px-4 py-3 text-sm text-[#e8e8e8] outline-none focus:border-[#f0c040] transition placeholder-[#444] [color-scheme:dark]';
@@ -89,8 +92,9 @@ function StatusSelect({ value, onChange }: { value: Order['status']; onChange: (
 }
 
 // ─── Mobile OrderCard ─────────────────────────────────────────────────────────
-function OrderCard({ order, onDelete, onImages, onStatusChange }: { order: Order; onDelete: () => void; onImages: () => void; onStatusChange: (s: Order['status']) => void }) {
+function OrderCard({ order, onDelete, onEdit, onImages, onStatusChange }: { order: Order; onDelete: () => void; onEdit: () => void; onImages: () => void; onStatusChange: (s: Order['status']) => void }) {
   const overdue = isOverdue(order);
+  const paid = order.status === 'completed' && order.amount > 0;
   return (
     <div className={`bg-[#1a1d27] rounded-2xl border p-4 space-y-3 ${overdue ? 'border-red-900/50' : 'border-[#2a2d3a]'}`}>
       <div className="flex items-start gap-3">
@@ -102,37 +106,63 @@ function OrderCard({ order, onDelete, onImages, onStatusChange }: { order: Order
         <StatusSelect value={order.status} onChange={onStatusChange} />
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-stretch gap-2">
         <div className="flex-1 bg-[#14161f] rounded-xl px-3 py-2">
           <p className="text-[10px] text-[#555] uppercase tracking-wide mb-0.5">Muddat</p>
           <p className={`text-xs font-medium ${overdue ? 'text-red-400' : 'text-[#aaa]'}`}>
             {overdue ? '⚠ ' : ''}{fmtDate(order.deadline)}
           </p>
         </div>
+        <div className="flex-1 bg-[#14161f] rounded-xl px-3 py-2">
+          <p className="text-[10px] text-[#555] uppercase tracking-wide mb-0.5">Narx</p>
+          <p className={`text-xs font-semibold ${order.amount > 0 ? (paid ? 'text-emerald-400' : 'text-[#e8e8e8]') : 'text-[#555]'}`}>
+            {order.amount > 0 ? `${fmtMoney(order.amount)}` : '—'}
+          </p>
+        </div>
         {order.images?.length > 0 && (
           <button
             onClick={onImages}
-            className="bg-blue-950 border border-blue-800/30 text-blue-400 text-xs font-semibold px-3 py-2 rounded-xl hover:bg-blue-900 transition"
+            className="bg-blue-950 border border-blue-800/30 text-blue-400 text-xs font-semibold px-3 rounded-xl hover:bg-blue-900 transition shrink-0"
           >
-            🖼 {order.images.length} ta
+            🖼 {order.images.length}
           </button>
         )}
       </div>
 
-      <button
-        onClick={onDelete}
-        className="w-full py-2 rounded-xl border border-red-900/40 text-red-400 text-xs font-semibold hover:bg-red-950/40 transition"
-      >
-        O'chirish
-      </button>
+      {paid && <p className="text-[11px] text-emerald-400/80 m-0">💰 Daromadga yozildi</p>}
+
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          onClick={onEdit}
+          className="py-2 rounded-xl border border-[#2a2d3a] text-[#aaa] text-xs font-semibold hover:bg-[#2a2d3a] transition"
+        >
+          Tahrirlash
+        </button>
+        <button
+          onClick={onDelete}
+          className="py-2 rounded-xl border border-red-900/40 text-red-400 text-xs font-semibold hover:bg-red-950/40 transition"
+        >
+          O'chirish
+        </button>
+      </div>
     </div>
   );
 }
 
-// ─── Add Modal ────────────────────────────────────────────────────────────────
-function AddModal({ onClose, onSubmit, saving }: { onClose: () => void; onSubmit: (f: FormState) => void; saving: boolean }) {
-  const [form, setForm]         = useState<FormState>(EMPTY_FORM);
-  const [previews, setPreviews] = useState<string[]>([]);
+// ─── Add / Edit Modal ─────────────────────────────────────────────────────────
+function OrderModal({ initial, onClose, onSubmit, saving }: { initial?: Order | null; onClose: () => void; onSubmit: (f: FormState) => void; saving: boolean }) {
+  const [form, setForm]         = useState<FormState>(
+    initial
+      ? {
+          title: initial.title,
+          clientName: initial.clientName,
+          deadline: initial.deadline ? initial.deadline.slice(0, 10) : '',
+          amount: initial.amount ? String(initial.amount) : '',
+          images: initial.images || [],
+        }
+      : EMPTY_FORM,
+  );
+  const [previews, setPreviews] = useState<string[]>(initial?.images || []);
   const [uploading, setUploading] = useState(false);
 
   const set = (k: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -162,6 +192,7 @@ function AddModal({ onClose, onSubmit, saving }: { onClose: () => void; onSubmit
 
   const handleClose = () => { setPreviews([]); setForm(EMPTY_FORM); onClose(); };
   const valid = form.title && form.clientName && form.deadline;
+  const isEdit = !!initial;
 
   return (
     <div
@@ -173,7 +204,7 @@ function AddModal({ onClose, onSubmit, saving }: { onClose: () => void; onSubmit
         <div className="w-8 h-1 bg-[#2a2d3a] rounded-full mx-auto mb-5 sm:hidden" />
 
         <h2 className="text-lg font-extrabold text-white mb-5" style={{ fontFamily: "'Syne', sans-serif" }}>
-          Yangi buyurtma
+          {isEdit ? 'Buyurtmani tahrirlash' : 'Yangi buyurtma'}
         </h2>
 
         <div className="space-y-3.5">
@@ -187,6 +218,21 @@ function AddModal({ onClose, onSubmit, saving }: { onClose: () => void; onSubmit
               <input type={type} placeholder={placeholder} value={form[key]} onChange={set(key)} className={inputCls} />
             </div>
           ))}
+
+          {/* Narx (ixtiyoriy) */}
+          <div>
+            <label className="block text-[#888] text-[11px] uppercase tracking-widest mb-1.5">Narx (so'm)</label>
+            <input
+              inputMode="numeric"
+              placeholder="0"
+              value={form.amount ? Number(form.amount).toLocaleString('uz-UZ') : ''}
+              onChange={(e) => setForm(prev => ({ ...prev, amount: e.target.value.replace(/[^0-9]/g, '') }))}
+              className={inputCls}
+            />
+            <p className="text-[10px] text-[#555] mt-1.5 leading-relaxed">
+              Buyurtma <span className="text-emerald-400/80">“Tugallandi”</span> bo'lganda bu summa avtomatik Hisobotlar daromadiga yoziladi.
+            </p>
+          </div>
 
           {/* Image upload */}
           <div>
@@ -286,6 +332,7 @@ export default function OrdersPage() {
   const [orders, setOrders]               = useState<Order[]>([]);
   const [loading, setLoading]             = useState(true);
   const [showModal, setShowModal]         = useState(false);
+  const [editingOrder, setEditingOrder]   = useState<Order | null>(null);
   const [saving, setSaving]               = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [toast, setToast]                 = useState<string | null>(null);
@@ -307,10 +354,17 @@ export default function OrdersPage() {
 
   const handleSubmit = async (form: FormState) => {
     setSaving(true);
-    await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+    const payload = { ...form, amount: form.amount ? Number(form.amount) : 0 };
+    if (editingOrder) {
+      await fetch(`/api/orders/${editingOrder._id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    } else {
+      await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    }
     setSaving(false);
     setShowModal(false);
-    showToast('Buyurtma yaratildi ✓');
+    const wasEdit = !!editingOrder;
+    setEditingOrder(null);
+    showToast(wasEdit ? 'Buyurtma yangilandi ✓' : 'Buyurtma yaratildi ✓');
     fetchOrders();
   };
 
@@ -339,6 +393,8 @@ export default function OrdersPage() {
     completed:   orders.filter(o => o.status === 'completed').length,
   };
 
+  const completedRevenue = orders.filter(o => o.status === 'completed').reduce((s, o) => s + (o.amount || 0), 0);
+
   const filtered = filter === 'all' ? orders : orders.filter(o => o.status === filter);
 
   return (
@@ -352,7 +408,14 @@ export default function OrdersPage() {
       `}</style>
 
       {toast && <Toast msg={toast} />}
-      {showModal && <AddModal onClose={() => setShowModal(false)} onSubmit={handleSubmit} saving={saving} />}
+      {(showModal || editingOrder) && (
+        <OrderModal
+          initial={editingOrder}
+          onClose={() => { setShowModal(false); setEditingOrder(null); }}
+          onSubmit={handleSubmit}
+          saving={saving}
+        />
+      )}
       {selectedOrder && <ImageModal order={selectedOrder} onClose={() => setSelectedOrder(null)} />}
 
       <div className="min-h-screen bg-[#0f1117] text-[#e8e8e8]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
@@ -386,6 +449,18 @@ export default function OrdersPage() {
             <StatCard label="Tugallandi" value={stats.completed}   color="text-emerald-400" icon="✅" chip="bg-[#142614]" active={filter==='completed'}   onClick={() => setFilter('completed')} />
           </div>
 
+          {/* ── Tugallangan daromad ── */}
+          {completedRevenue > 0 && (
+            <div className="mb-6 sm:mb-8 flex items-center gap-3 bg-[#101a12] border border-emerald-900/40 rounded-2xl px-4 py-3">
+              <span className="w-9 h-9 rounded-xl bg-[#142614] text-emerald-400 flex items-center justify-center text-base shrink-0">💰</span>
+              <div className="min-w-0">
+                <p className="text-[10px] text-[#666] uppercase tracking-widest m-0">Tugallangan buyurtmalar daromadi</p>
+                <p className="text-lg sm:text-xl font-extrabold text-emerald-400 m-0 whitespace-nowrap" style={{ fontFamily: "'Syne', sans-serif" }}>{fmtMoney(completedRevenue)} so'm</p>
+              </div>
+              <span className="ml-auto text-[10px] text-[#555] hidden sm:block text-right">Hisobotlar bo'limiga<br />avtomatik yoziladi</span>
+            </div>
+          )}
+
           {/* ── Content ── */}
           {loading ? (
             <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] py-16 flex flex-col items-center gap-3 text-[#555]">
@@ -413,6 +488,7 @@ export default function OrdersPage() {
                     key={order._id}
                     order={order}
                     onDelete={() => handleDelete(order._id)}
+                    onEdit={() => setEditingOrder(order)}
                     onImages={() => setSelectedOrder(order)}
                     onStatusChange={(s) => handleStatusChange(order._id, s)}
                   />
@@ -459,8 +535,25 @@ export default function OrdersPage() {
                         </p>
                       </div>
 
+                      {/* Narx */}
+                      <div className="shrink-0 text-right hidden sm:block min-w-[88px]">
+                        <p className="text-[#555] text-[10px] uppercase tracking-wide mb-0.5">Narx</p>
+                        <p className={`text-xs font-semibold ${order.amount > 0 ? (order.status === 'completed' ? 'text-emerald-400' : 'text-[#e8e8e8]') : 'text-[#555]'}`}>
+                          {order.amount > 0 ? fmtMoney(order.amount) : '—'}
+                        </p>
+                      </div>
+
                       {/* Status dropdown */}
                       <StatusSelect value={order.status} onChange={(s) => handleStatusChange(order._id, s)} />
+
+                      {/* Edit */}
+                      <button
+                        onClick={() => setEditingOrder(order)}
+                        title="Tahrirlash"
+                        className="shrink-0 text-xs px-2.5 py-1.5 rounded-lg border border-[#2a2d3a] text-[#aaa] hover:bg-[#2a2d3a] transition"
+                      >
+                        ✏
+                      </button>
 
                       {/* Delete */}
                       <button

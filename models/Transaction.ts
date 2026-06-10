@@ -8,6 +8,7 @@ export interface ITransaction extends Document {
   amount: number;
   note?: string;
   date: Date;
+  order?: Types.ObjectId;  // buyurtmadan avtomatik daromad bo'lsa — manba buyurtma (dedupe uchun)
   createdAt: Date;
 }
 
@@ -18,6 +19,7 @@ const TransactionSchema = new Schema<ITransaction>({
   amount: { type: Number, required: true },
   note: { type: String, default: '' },
   date: { type: Date, default: Date.now },
+  order: { type: Schema.Types.ObjectId, ref: 'Order', index: true },
   createdAt: { type: Date, default: Date.now },
 });
 
