@@ -11,6 +11,7 @@ const navItems: { href: string; label: string; icon: string; pro?: boolean }[] =
   { href: '/admin/workers',        label: 'Ustalar',      icon: '👷' },
   { href: '/admin/orders',         label: 'Buyurtmalar',  icon: '📦', pro: true },
   { href: '/admin/tasks',          label: 'Vazifalar',    icon: '📋', pro: true },
+  { href: '/admin/inventory',      label: 'Ombor',        icon: '🧱', pro: true },
   { href: '/admin/attendance',     label: 'Davomat',      icon: '⏰' },
   { href: '/admin/salary',         label: 'Oylik hisob',  icon: '💰' },
   { href: '/admin/kpi',            label: 'Samaradorlik', icon: '📈', pro: true },
@@ -79,7 +80,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const visibleNav = navItems.filter((item) => !item.pro || isPro);
 
   // Basic admin to'g'ridan-to'g'ri Pro sahifani ochsa — bloklab, xabar ko'rsatamiz
-  const proRoutes = ['/admin/orders', '/admin/tasks', '/admin/pipelines', '/admin/kpi', '/admin/reports'];
+  const proRoutes = ['/admin/orders', '/admin/tasks', '/admin/inventory', '/admin/pipelines', '/admin/kpi', '/admin/reports'];
   const blockedByPlan =
     !isPro && me !== null && proRoutes.some((r) => pathname === r || pathname.startsWith(r + '/'));
 
