@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { apiFetch, clearSession, getPosition, getToken, getWorker, type WorkerInfo } from './_lib/store';
 import InstallPWAButton from '../_lib/InstallPWAButton';
 import NotificationButton from './_lib/NotificationButton';
@@ -145,10 +146,7 @@ export default function IshHome() {
     }
   };
 
-  const logout = () => {
-    clearSession();
-    router.replace('/ish/login');
-  };
+  const initials = worker?.fullName?.split(' ').map((n) => n[0]).slice(0, 2).join('') || '?';
 
   const today = new Date().toDateString();
   const todayEvents = events.filter((e) => new Date(e.timestamp).toDateString() === today);
@@ -165,7 +163,9 @@ export default function IshHome() {
             <h1 style={S.name}>{worker?.fullName || 'Ishchi'}</h1>
             {worker?.position && <p style={{ margin: '2px 0 0', color: '#7a7d8a', fontSize: 13 }}>{worker.position}</p>}
           </div>
-          <button onClick={logout} style={S.logout} title="Chiqish">⏻</button>
+          <Link href="/ish/profile" style={S.profileBtn} title="Profil" aria-label="Profil">
+            {initials}
+          </Link>
         </header>
 
         {/* Holat kartasi */}
@@ -329,6 +329,22 @@ const S: Record<string, React.CSSProperties> = {
     fontSize: 18,
     cursor: 'pointer',
     flexShrink: 0,
+  },
+  profileBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    background: 'linear-gradient(135deg, #f5cf5a 0%, #e0b030 100%)',
+    color: '#0f1117',
+    fontFamily: 'var(--font-display)',
+    fontWeight: 800,
+    fontSize: 16,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    textDecoration: 'none',
+    flexShrink: 0,
+    boxShadow: '0 6px 18px rgba(240,192,64,0.25)',
   },
   statusCard: {
     position: 'relative',
