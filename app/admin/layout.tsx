@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
+import InstallPWAButton from '../_lib/InstallPWAButton';
 
 // pro: true — faqat Pro tarifdagi korxonalar ko'radi (Basic'da yashiriladi)
 const navItems: { href: string; label: string; icon: string; pro?: boolean }[] = [
@@ -217,6 +218,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <p style={{ margin: 0, fontSize: '11px', color: '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{userLabel}</p>
             </div>
           </div>
+          <InstallPWAButton fullWidth style={{ marginBottom: '10px', fontSize: '12px', padding: '9px' }} />
           <button
             onClick={() => signOut({ callbackUrl: '/login' })}
             style={{

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch, clearSession, getPosition, getToken, getWorker, type WorkerInfo } from './_lib/store';
+import InstallPWAButton from '../_lib/InstallPWAButton';
 
 type AttEvent = {
   _id: string;
@@ -117,6 +118,11 @@ export default function IshHome() {
           <span style={{ color: isInside ? '#4ade80' : '#888', fontSize: 15, fontWeight: 600 }}>
             {loadingReport ? 'Yuklanmoqda...' : isInside ? 'Hozir ish joyidasiz' : 'Ish joyidan tashqarida'}
           </span>
+        </div>
+
+        {/* Ilovani o'rnatish (faqat o'rnatilmagan bo'lsa ko'rinadi) */}
+        <div style={{ marginTop: 14, display: 'flex', justifyContent: 'center' }}>
+          <InstallPWAButton />
         </div>
 
         {/* Toast */}
