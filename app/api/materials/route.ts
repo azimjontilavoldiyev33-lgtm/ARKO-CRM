@@ -4,7 +4,7 @@ import Material from '@/models/Material';
 import StockMovement from '@/models/StockMovement';
 import { getAuth } from '@/lib/auth';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 
 const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
 

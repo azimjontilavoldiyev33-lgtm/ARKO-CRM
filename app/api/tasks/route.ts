@@ -18,7 +18,7 @@ export async function GET(req: Request) {
   const workerId = searchParams.get('worker');
   const department = searchParams.get('department');
 
-  const query: Record<string, any> = {};
+  const query: Record<string, unknown> = {};
   if (workerId) query.worker = workerId;
   if (department) query.department = department;
 

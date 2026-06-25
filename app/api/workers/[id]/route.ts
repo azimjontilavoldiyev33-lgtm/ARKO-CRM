@@ -39,8 +39,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   try {
     const worker = await Worker.findOneAndUpdate({ _id: id, company: auth.companyId }, body, { new: true });
     return NextResponse.json(worker);
-  } catch (err: any) {
-    if (err.code === 11000) {
+  } catch (err) {
+    if (err && typeof err === 'object' && 'code' in err && err.code === 11000) {
       return NextResponse.json({ error: 'Telefon raqam band' }, { status: 400 });
     }
     return NextResponse.json({ error: 'Xato yuz berdi' }, { status: 500 });

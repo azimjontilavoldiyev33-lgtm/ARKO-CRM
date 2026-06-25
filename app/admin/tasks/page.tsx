@@ -90,7 +90,7 @@ interface Task {
           <p className="text-[#666] text-[10px] sm:text-[11px] uppercase tracking-widest m-0">{label}</p>
           <span className={`w-8 h-8 rounded-lg ${chip} ${color} flex items-center justify-center text-sm shrink-0`}>{icon}</span>
         </div>
-        <p className={`text-2xl sm:text-3xl font-extrabold ${color}`} style={{ fontFamily: "'Syne', sans-serif" }}>
+        <p className={`text-2xl sm:text-3xl font-extrabold ${color}`} style={{ fontFamily: "var(--font-display)" }}>
           {value}
         </p>
       </div>
@@ -175,7 +175,7 @@ interface Task {
         <div className="bg-[#1a1d27] rounded-t-3xl sm:rounded-2xl border border-[#2a2d3a] w-full sm:max-w-md p-6 pb-10 sm:pb-6 max-h-[92vh] overflow-y-auto animate-slide-up">
           <div className="w-8 h-1 bg-[#2a2d3a] rounded-full mx-auto mb-5 sm:hidden" />
 
-          <h2 className="text-lg font-extrabold text-white mb-5" style={{ fontFamily: "'Syne', sans-serif" }}>
+          <h2 className="text-lg font-extrabold text-white mb-5" style={{ fontFamily: "var(--font-display)" }}>
             Yangi vazifa
           </h2>
 
@@ -254,7 +254,7 @@ interface Task {
               onClick={() => valid && onSubmit(form)}
               disabled={!valid || saving}
               className="py-3 rounded-xl bg-[#f0c040] text-[#0f1117] text-sm font-bold hover:bg-[#d4a832] disabled:opacity-40 disabled:cursor-not-allowed transition"
-              style={{ fontFamily: "'Syne', sans-serif" }}
+              style={{ fontFamily: "var(--font-display)" }}
             >
               {saving ? 'Saqlanmoqda...' : 'Saqlash'}
             </button>
@@ -342,7 +342,6 @@ interface Task {
     return (
       <>
         <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap');
           @keyframes slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
           @keyframes fade-in  { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
           .animate-slide-up   { animation: slide-up 0.25s ease both; }
@@ -360,7 +359,7 @@ interface Task {
           />
         )}
 
-        <div className="min-h-screen bg-[#0f1117] text-[#e8e8e8]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+        <div className="min-h-screen bg-[#0f1117] text-[#e8e8e8]" style={{ fontFamily: "var(--font-sans)" }}>
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
 
             {/* ── Header ── */}
@@ -369,7 +368,7 @@ interface Task {
                 <p className="text-[#f0c040] text-[11px] uppercase tracking-[2px] mb-1">{company || 'Tabel'}</p>
                 <h1
                   className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-br from-white to-[#888] bg-clip-text text-transparent m-0"
-                  style={{ fontFamily: "'Syne', sans-serif" }}
+                  style={{ fontFamily: "var(--font-display)" }}
                 >
                   Vazifalar
                 </h1>
@@ -377,7 +376,7 @@ interface Task {
               <button
                 onClick={() => setShowModal(true)}
                 className="self-start sm:self-auto bg-[#f0c040] text-[#0f1117] text-sm font-bold px-5 py-3 rounded-xl hover:bg-[#d4a832] active:scale-95 transition whitespace-nowrap"
-                style={{ fontFamily: "'Syne', sans-serif" }}
+                style={{ fontFamily: "var(--font-display)" }}
               >
                 + Vazifa qo'shish
               </button>

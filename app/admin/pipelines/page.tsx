@@ -19,6 +19,14 @@ interface Step {
   deadline: string;
 }
 
+interface Pipeline {
+  _id: string;
+  title: string;
+  status: string;
+  currentStep: number;
+  steps: { title: string; department: string }[];
+}
+
 const DEPARTMENTS = [
   { label: "Zamer",        slug: 'zamer'        },
   { label: "Roverga",      slug: 'roverga'      },
@@ -50,7 +58,7 @@ export default function PipelinesPage() {
   const [steps, setSteps]     = useState<Step[]>(DEFAULT_STEPS);
   const [saving, setSaving]   = useState(false);
   const [toast, setToast]     = useState('');
-  const [pipelines, setPipelines] = useState<any[]>([]);
+  const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [company, setCompany] = useState('');
 
   useEffect(() => {
@@ -102,8 +110,7 @@ export default function PipelinesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f1117] text-[#e8e8e8]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap');`}</style>
+    <div className="min-h-screen bg-[#0f1117] text-[#e8e8e8]" style={{ fontFamily: "var(--font-sans)" }}>
 
       {toast && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-[#1a1d27] border border-[#2a2d3a] text-white text-sm px-5 py-2.5 rounded-full shadow-xl whitespace-nowrap">
@@ -116,14 +123,14 @@ export default function PipelinesPage() {
         {/* Header */}
         <div className="mb-8">
           <p className="text-[#f0c040] text-[11px] uppercase tracking-[2px] mb-1">{company || 'Tabel'}</p>
-          <h1 className="text-3xl font-extrabold bg-gradient-to-br from-white to-[#888] bg-clip-text text-transparent m-0" style={{ fontFamily: "'Syne', sans-serif" }}>
+          <h1 className="text-3xl font-extrabold bg-gradient-to-br from-white to-[#888] bg-clip-text text-transparent m-0" style={{ fontFamily: "var(--font-display)" }}>
             Ish zanjiri
           </h1>
         </div>
 
         {/* Form */}
         <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] p-6 mb-8">
-          <h2 className="text-lg font-bold text-white mb-5" style={{ fontFamily: "'Syne', sans-serif" }}>
+          <h2 className="text-lg font-bold text-white mb-5" style={{ fontFamily: "var(--font-display)" }}>
             Yangi zanjir
           </h2>
 
@@ -222,7 +229,7 @@ export default function PipelinesPage() {
             onClick={handleSubmit}
             disabled={saving}
             className="w-full py-3 rounded-xl bg-[#f0c040] text-[#0f1117] font-bold text-sm hover:bg-[#d4a832] disabled:opacity-40 transition"
-            style={{ fontFamily: "'Syne', sans-serif" }}
+            style={{ fontFamily: "var(--font-display)" }}
           >
             {saving ? 'Yaratilmoqda...' : '🔗 Zanjir yaratish'}
           </button>
@@ -231,11 +238,11 @@ export default function PipelinesPage() {
         {/* Pipelines list */}
         {pipelines.length > 0 && (
           <div>
-            <h2 className="text-lg font-bold text-white mb-4" style={{ fontFamily: "'Syne', sans-serif" }}>
+            <h2 className="text-lg font-bold text-white mb-4" style={{ fontFamily: "var(--font-display)" }}>
               Faol zanjirlar
             </h2>
             <div className="space-y-3">
-              {pipelines.map((p: any) => (
+              {pipelines.map((p) => (
                 <div key={p._id} className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] p-5">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-white font-semibold text-sm">{p.title}</h3>
@@ -258,7 +265,7 @@ export default function PipelinesPage() {
 
                   {/* Steps */}
                   <div className="flex gap-2 flex-wrap">
-                    {p.steps.map((s: any, i: number) => (
+                    {p.steps.map((s, i) => (
                       <span
                         key={i}
                         className={`text-xs px-2.5 py-1 rounded-lg ${

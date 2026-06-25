@@ -29,13 +29,6 @@ interface WorkerPanelProps {
 
 type Screen = 'login' | 'tasks';
 
-function fmtDate(d?: string) {
-  if (!d) return '—';
-  return new Date(d).toLocaleDateString('uz-UZ', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-  });
-}
-
 function daysLeft(deadline: string) {
   const diff = new Date(deadline).getTime() - Date.now();
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
@@ -120,6 +113,8 @@ export default function WorkerPanel({ onClose, allWorkers }: WorkerPanelProps) {
 
   useEffect(() => {
     if (code.length === 4) handleLogin();
+    // Faqat kod 4 xonaga to'lganda login — handleLogin'ni qasddan deps'ga qo'shmaymiz.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code]);
 
   const otherWorkers = allWorkers.filter(w => w._id !== worker?._id);

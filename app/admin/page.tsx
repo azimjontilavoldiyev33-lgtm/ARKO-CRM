@@ -49,16 +49,16 @@ export default function DashboardPage() {
         },
         orders: {
           total:       orders.length,
-          new:         orders.filter((o: any) => o.status === 'new').length,
-          in_progress: orders.filter((o: any) => o.status === 'in_progress').length,
-          completed:   orders.filter((o: any) => o.status === 'completed').length,
+          new:         orders.filter((o: { status: string }) => o.status === 'new').length,
+          in_progress: orders.filter((o: { status: string }) => o.status === 'in_progress').length,
+          completed:   orders.filter((o: { status: string }) => o.status === 'completed').length,
         },
         tasks: {
           total:       tasks.length,
-          pending:     tasks.filter((t: any) => t.status === 'pending').length,
-          in_progress: tasks.filter((t: any) => t.status === 'in_progress').length,
-          completed:   tasks.filter((t: any) => t.status === 'completed').length,
-          overdue:     tasks.filter((t: any) => new Date(t.deadline) < now && t.status !== 'completed').length,
+          pending:     tasks.filter((t: { status: string }) => t.status === 'pending').length,
+          in_progress: tasks.filter((t: { status: string }) => t.status === 'in_progress').length,
+          completed:   tasks.filter((t: { status: string }) => t.status === 'completed').length,
+          overdue:     tasks.filter((t: { status: string; deadline: string }) => new Date(t.deadline) < now && t.status !== 'completed').length,
         },
       });
       setRecentTasks(tasks.slice(0, 8));
@@ -92,18 +92,13 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#0f1117] text-[#e8e8e8] font-sans p-4 sm:p-6 lg:p-8">
-      <link
-        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@700;800&display=swap"
-        rel="stylesheet"
-      />
-
-      {/* ── Header ─────────────────────────────────────────── */}
+{/* ── Header ─────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8 sm:mb-10">
         <div>
           <p className="text-[#f0c040] text-[11px] tracking-[2px] uppercase mb-1.5">{company || 'Tabel'}</p>
           <h1
             className="text-3xl sm:text-4xl font-extrabold m-0 bg-gradient-to-br from-white to-[#888] bg-clip-text text-transparent"
-            style={{ fontFamily: "'Syne', sans-serif" }}
+            style={{ fontFamily: "var(--font-display)" }}
           >
             Dashboard
           </h1>
@@ -153,7 +148,7 @@ export default function DashboardPage() {
                 <p className="m-0 text-[#666] text-[11px] tracking-[1.5px] uppercase">Ustalar</p>
                 <span className="w-9 h-9 rounded-lg bg-[#15233a] text-[#60a5fa] flex items-center justify-center text-lg">👷</span>
               </div>
-              <p className="text-4xl sm:text-5xl font-extrabold m-0 mb-3 text-[#e8e8e8]" style={{ fontFamily: "'Syne', sans-serif" }}>
+              <p className="text-4xl sm:text-5xl font-extrabold m-0 mb-3 text-[#e8e8e8]" style={{ fontFamily: "var(--font-display)" }}>
                 {stats.workers.total}
               </p>
               <div className="flex flex-wrap gap-2">
@@ -167,7 +162,7 @@ export default function DashboardPage() {
                 <p className="m-0 text-[#666] text-[11px] tracking-[1.5px] uppercase">Buyurtmalar</p>
                 <span className="w-9 h-9 rounded-lg bg-[#2a2410] text-[#f0c040] flex items-center justify-center text-lg">📦</span>
               </div>
-              <p className="text-4xl sm:text-5xl font-extrabold m-0 mb-3 text-[#e8e8e8]" style={{ fontFamily: "'Syne', sans-serif" }}>
+              <p className="text-4xl sm:text-5xl font-extrabold m-0 mb-3 text-[#e8e8e8]" style={{ fontFamily: "var(--font-display)" }}>
                 {stats.orders.total}
               </p>
               <div className="flex flex-wrap gap-2">
@@ -183,7 +178,7 @@ export default function DashboardPage() {
                 <p className="m-0 text-[#666] text-[11px] tracking-[1.5px] uppercase">Vazifalar</p>
                 <span className="w-9 h-9 rounded-lg bg-[#142614] text-[#4ade80] flex items-center justify-center text-lg">📋</span>
               </div>
-              <p className="text-4xl sm:text-5xl font-extrabold m-0 mb-3 text-[#e8e8e8]" style={{ fontFamily: "'Syne', sans-serif" }}>
+              <p className="text-4xl sm:text-5xl font-extrabold m-0 mb-3 text-[#e8e8e8]" style={{ fontFamily: "var(--font-display)" }}>
                 {stats.tasks.total}
               </p>
               <div className="flex flex-wrap gap-2">
@@ -198,7 +193,7 @@ export default function DashboardPage() {
           <div className="bg-[#1a1d27] rounded-2xl p-5 sm:p-6 border border-[#2a2d3a] mb-6">
             <p
               className="m-0 mb-5 font-bold text-base sm:text-lg"
-              style={{ fontFamily: "'Syne', sans-serif" }}
+              style={{ fontFamily: "var(--font-display)" }}
             >
               Umumiy progress
             </p>
@@ -233,7 +228,7 @@ export default function DashboardPage() {
         <div className="flex justify-between items-center px-5 sm:px-6 py-4 sm:py-5 border-b border-[#2a2d3a]">
           <p
             className="m-0 font-bold text-base"
-            style={{ fontFamily: "'Syne', sans-serif" }}
+            style={{ fontFamily: "var(--font-display)" }}
           >
             So'nggi vazifalar
           </p>

@@ -58,7 +58,7 @@ function StatCard({ label, value, color, icon, chip, active, onClick }: { label:
         <p className="text-[#666] text-[10px] sm:text-[11px] uppercase tracking-widest m-0">{label}</p>
         <span className={`w-8 h-8 rounded-lg ${chip} ${color} flex items-center justify-center text-sm shrink-0`}>{icon}</span>
       </div>
-      <p className={`text-2xl sm:text-3xl font-extrabold ${color}`} style={{ fontFamily: "'Syne', sans-serif" }}>
+      <p className={`text-2xl sm:text-3xl font-extrabold ${color}`} style={{ fontFamily: "var(--font-display)" }}>
         {value}
       </p>
     </button>
@@ -203,7 +203,7 @@ function OrderModal({ initial, onClose, onSubmit, saving }: { initial?: Order | 
         {/* Drag handle (mobile only) */}
         <div className="w-8 h-1 bg-[#2a2d3a] rounded-full mx-auto mb-5 sm:hidden" />
 
-        <h2 className="text-lg font-extrabold text-white mb-5" style={{ fontFamily: "'Syne', sans-serif" }}>
+        <h2 className="text-lg font-extrabold text-white mb-5" style={{ fontFamily: "var(--font-display)" }}>
           {isEdit ? 'Buyurtmani tahrirlash' : 'Yangi buyurtma'}
         </h2>
 
@@ -268,7 +268,7 @@ function OrderModal({ initial, onClose, onSubmit, saving }: { initial?: Order | 
             onClick={() => valid && onSubmit(form)}
             disabled={!valid || saving || uploading}
             className="py-3 rounded-xl bg-[#f0c040] text-[#0f1117] text-sm font-bold hover:bg-[#d4a832] disabled:opacity-40 disabled:cursor-not-allowed transition"
-            style={{ fontFamily: "'Syne', sans-serif" }}
+            style={{ fontFamily: "var(--font-display)" }}
           >
             {saving ? 'Saqlanmoqda...' : 'Saqlash'}
           </button>
@@ -292,7 +292,7 @@ function ImageModal({ order, onClose }: { order: Order; onClose: () => void }) {
 
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-base font-bold text-white truncate pr-4" style={{ fontFamily: "'Syne', sans-serif" }}>
+            <h3 className="text-base font-bold text-white truncate pr-4" style={{ fontFamily: "var(--font-display)" }}>
               {order.title}
             </h3>
             <p className="text-xs text-[#555] mt-0.5">{order.images.length} ta rasm</p>
@@ -400,7 +400,6 @@ export default function OrdersPage() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap');
         @keyframes slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
         @keyframes fade-in  { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
         .animate-slide-up   { animation: slide-up 0.25s ease both; }
@@ -418,7 +417,7 @@ export default function OrdersPage() {
       )}
       {selectedOrder && <ImageModal order={selectedOrder} onClose={() => setSelectedOrder(null)} />}
 
-      <div className="min-h-screen bg-[#0f1117] text-[#e8e8e8]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+      <div className="min-h-screen bg-[#0f1117] text-[#e8e8e8]" style={{ fontFamily: "var(--font-sans)" }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
 
           {/* ── Header ── */}
@@ -427,7 +426,7 @@ export default function OrdersPage() {
               <p className="text-[#f0c040] text-[11px] uppercase tracking-[2px] mb-1">{company || 'Tabel'}</p>
               <h1
                 className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-br from-white to-[#888] bg-clip-text text-transparent m-0"
-                style={{ fontFamily: "'Syne', sans-serif" }}
+                style={{ fontFamily: "var(--font-display)" }}
               >
                 Buyurtmalar
               </h1>
@@ -435,7 +434,7 @@ export default function OrdersPage() {
             <button
               onClick={() => setShowModal(true)}
               className="self-start sm:self-auto bg-[#f0c040] text-[#0f1117] text-sm font-bold px-5 py-3 rounded-xl hover:bg-[#d4a832] active:scale-95 transition whitespace-nowrap"
-              style={{ fontFamily: "'Syne', sans-serif" }}
+              style={{ fontFamily: "var(--font-display)" }}
             >
               + Buyurtma qo'shish
             </button>
@@ -455,7 +454,7 @@ export default function OrdersPage() {
               <span className="w-9 h-9 rounded-xl bg-[#142614] text-emerald-400 flex items-center justify-center text-base shrink-0">💰</span>
               <div className="min-w-0">
                 <p className="text-[10px] text-[#666] uppercase tracking-widest m-0">Tugallangan buyurtmalar daromadi</p>
-                <p className="text-lg sm:text-xl font-extrabold text-emerald-400 m-0 whitespace-nowrap" style={{ fontFamily: "'Syne', sans-serif" }}>{fmtMoney(completedRevenue)} so'm</p>
+                <p className="text-lg sm:text-xl font-extrabold text-emerald-400 m-0 whitespace-nowrap" style={{ fontFamily: "var(--font-display)" }}>{fmtMoney(completedRevenue)} so'm</p>
               </div>
               <span className="ml-auto text-[10px] text-[#555] hidden sm:block text-right">Hisobotlar bo'limiga<br />avtomatik yoziladi</span>
             </div>

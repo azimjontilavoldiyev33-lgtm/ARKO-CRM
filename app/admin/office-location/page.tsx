@@ -69,15 +69,14 @@ export default function OfficeLocationPage() {
   const msgOk = message.includes('✅');
 
   return (
-    <div className="min-h-screen bg-[#0f1117] text-[#e8e8e8]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap');`}</style>
+    <div className="min-h-screen bg-[#0f1117] text-[#e8e8e8]" style={{ fontFamily: "var(--font-sans)" }}>
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
 
         {/* Header */}
         <div className="mb-6 sm:mb-8">
           <p className="text-[#f0c040] text-[11px] uppercase tracking-[2px] mb-1">{company || 'Tabel'}</p>
-          <h1 className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-br from-white to-[#888] bg-clip-text text-transparent m-0" style={{ fontFamily: "'Syne', sans-serif" }}>
+          <h1 className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-br from-white to-[#888] bg-clip-text text-transparent m-0" style={{ fontFamily: "var(--font-display)" }}>
             Ofis hududi
           </h1>
           <p className="text-[#555] text-sm mt-1.5">Geofence — ishchilar shu hudud ichida bo&apos;lsagina check-in qila oladi</p>
@@ -142,7 +141,7 @@ export default function OfficeLocationPage() {
               onClick={handleSave}
               disabled={loading}
               className="w-full bg-[#f0c040] text-[#0f1117] rounded-xl py-3 text-sm font-bold hover:bg-[#d4a832] disabled:opacity-40 transition"
-              style={{ fontFamily: "'Syne', sans-serif" }}
+              style={{ fontFamily: "var(--font-display)" }}
             >
               {loading ? 'Saqlanmoqda...' : 'Saqlash'}
             </button>

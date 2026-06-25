@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Task {
@@ -46,7 +47,7 @@ function Skeleton() {
     <div className="min-h-screen bg-[#0f1117] flex items-center justify-center">
       <div className="space-y-2 text-center">
         <div className="w-12 h-12 rounded-full border-2 border-[#f0c040] border-t-transparent animate-spin mx-auto" />
-        <p className="text-[#555] text-sm font-medium" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+        <p className="text-[#555] text-sm font-medium" style={{ fontFamily: "var(--font-sans)" }}>
           Yuklanmoqda...
         </p>
       </div>
@@ -148,7 +149,7 @@ function EditWorkerModal({
           <div>
             <h2
               className="text-base font-bold text-white"
-              style={{ fontFamily: "'Syne', sans-serif" }}
+              style={{ fontFamily: "var(--font-display)" }}
             >
               Ishchi ma'lumotlarini tahrirlash
             </h2>
@@ -166,7 +167,7 @@ function EditWorkerModal({
         <div className="px-6 pt-5 flex items-center gap-4">
           <div
             className="w-12 h-12 rounded-xl bg-[#f0c040] flex items-center justify-center text-[#0f1117] text-lg font-extrabold shrink-0"
-            style={{ fontFamily: "'Syne', sans-serif" }}
+            style={{ fontFamily: "var(--font-display)" }}
           >
             {form.fullName.split(' ').map(n => n[0]).slice(0, 2).join('') || '?'}
           </div>
@@ -197,7 +198,7 @@ function EditWorkerModal({
             onClick={handleSubmit}
             disabled={saving}
             className="py-3 rounded-xl bg-[#f0c040] text-[#0f1117] text-sm font-bold hover:bg-[#d4a832] transition disabled:opacity-60 flex items-center justify-center gap-2"
-            style={{ fontFamily: "'Syne', sans-serif" }}
+            style={{ fontFamily: "var(--font-display)" }}
           >
             {saving ? (
               <>
@@ -232,7 +233,7 @@ function RatingModal({
     >
       <div className="bg-[#1a1d27] rounded-2xl p-7 w-full max-w-sm border border-[#2a2d3a] text-center animate-slide-up">
         <div className="w-8 h-1 bg-[#2a2d3a] rounded-full mx-auto mb-5 sm:hidden" />
-        <h2 className="text-lg font-bold text-white mb-1" style={{ fontFamily: "'Syne', sans-serif" }}>
+        <h2 className="text-lg font-bold text-white mb-1" style={{ fontFamily: "var(--font-display)" }}>
           Ishni baholang
         </h2>
         <p className="text-[#555] text-xs mb-6">Usta bajargan ishning sifatini belgilang</p>
@@ -262,7 +263,7 @@ function RatingModal({
           <button
             onClick={() => onSave(rating)}
             className="py-3 rounded-xl bg-[#f0c040] text-[#0f1117] text-sm font-bold hover:bg-[#d4a832] transition"
-            style={{ fontFamily: "'Syne', sans-serif" }}
+            style={{ fontFamily: "var(--font-display)" }}
           >
             Saqlash
           </button>
@@ -273,7 +274,6 @@ function RatingModal({
 }
 
 function PhotoModal({ task, onClose }: { task: Task; onClose: () => void }) {
-  const botToken = process.env.NEXT_PUBLIC_BOT_TOKEN;
   return (
     <div
       className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
@@ -284,7 +284,7 @@ function PhotoModal({ task, onClose }: { task: Task; onClose: () => void }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-bold text-white" style={{ fontFamily: "'Syne', sans-serif" }}>
+          <h3 className="text-base font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>
             {task.title}
           </h3>
           <button
@@ -296,7 +296,7 @@ function PhotoModal({ task, onClose }: { task: Task; onClose: () => void }) {
         </div>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={`https://api.telegram.org/file/bot${botToken}/${task.completionPhoto}`}
+          src={`/api/telegram/photo?file=${encodeURIComponent(task.completionPhoto || '')}`}
           alt="Ish rasmi"
           className="w-full rounded-xl object-cover"
         />
@@ -437,7 +437,7 @@ export default function WorkerProfilePage() {
   if (!worker) return (
     <div
       className="min-h-screen bg-[#0f1117] flex items-center justify-center text-[#555]"
-      style={{ fontFamily: "'DM Sans', sans-serif" }}
+      style={{ fontFamily: "var(--font-sans)" }}
     >
       Usta topilmadi
     </div>
@@ -456,7 +456,6 @@ export default function WorkerProfilePage() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap');
         @keyframes slide-up   { from { transform: translateY(100%); } to { transform: translateY(0); } }
         @keyframes fade-in    { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
         .animate-slide-up     { animation: slide-up 0.25s ease both; }
@@ -490,16 +489,16 @@ export default function WorkerProfilePage() {
 
       <div
         className="min-h-screen bg-[#0f1117] text-[#e8e8e8]"
-        style={{ fontFamily: "'DM Sans', sans-serif" }}
+        style={{ fontFamily: "var(--font-sans)" }}
       >
         {/* ── Topbar (mobile sticky) ── */}
         <div className="sticky top-0 z-30 bg-[#0f1117]/90 backdrop-blur border-b border-[#1e2130] px-4 py-3 flex items-center gap-3 sm:hidden">
-          <a
+          <Link
             href="/admin/workers"
             className="w-9 h-9 rounded-xl bg-[#1a1d27] flex items-center justify-center text-[#888] hover:text-white transition border border-[#2a2d3a]"
           >
             ←
-          </a>
+          </Link>
           <span className="flex-1 font-semibold text-white text-sm truncate">{worker.fullName}</span>
           <button
             onClick={() => setEditOpen(true)}
@@ -516,12 +515,12 @@ export default function WorkerProfilePage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-5">
 
           {/* Back link (desktop) */}
-          <a
+          <Link
             href="/admin/workers"
             className="hidden sm:inline-flex items-center gap-2 text-[#555] text-sm hover:text-[#888] transition"
           >
             ← Ustalarga qaytish
-          </a>
+          </Link>
 
           {/* ── Hero card ── */}
           <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] overflow-hidden">
@@ -531,7 +530,7 @@ export default function WorkerProfilePage() {
               {/* Avatar */}
               <div
                 className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#f0c040] flex items-center justify-center text-[#0f1117] text-2xl sm:text-3xl font-extrabold shrink-0 self-start sm:self-auto"
-                style={{ fontFamily: "'Syne', sans-serif" }}
+                style={{ fontFamily: "var(--font-display)" }}
               >
                 {initials}
               </div>
@@ -540,7 +539,7 @@ export default function WorkerProfilePage() {
               <div className="flex-1 min-w-0">
                 <h1
                   className="text-xl sm:text-2xl font-extrabold text-white leading-tight"
-                  style={{ fontFamily: "'Syne', sans-serif" }}
+                  style={{ fontFamily: "var(--font-display)" }}
                 >
                   {worker.fullName}
                 </h1>
@@ -588,7 +587,7 @@ export default function WorkerProfilePage() {
                 <p className="text-[#555] text-[10px] uppercase tracking-widest mb-2">{label}</p>
                 <p
                   className={`text-2xl sm:text-3xl font-extrabold ${color}`}
-                  style={{ fontFamily: "'Syne', sans-serif" }}
+                  style={{ fontFamily: "var(--font-display)" }}
                 >
                   {prefix}{value}
                 </p>
@@ -599,7 +598,7 @@ export default function WorkerProfilePage() {
           {/* ── Tasks ── */}
           <div>
             <div className="flex items-center justify-between mb-3 px-0.5">
-              <p className="text-white font-bold" style={{ fontFamily: "'Syne', sans-serif" }}>
+              <p className="text-white font-bold" style={{ fontFamily: "var(--font-display)" }}>
                 Barcha vazifalar
                 <span className="text-[#555] font-normal text-sm ml-2">({tasks.length})</span>
               </p>

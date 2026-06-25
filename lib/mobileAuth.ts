@@ -2,9 +2,11 @@ import { SignJWT, jwtVerify } from 'jose';
 
 // Mobil ilova uchun JWT token (admin next-auth'dan alohida).
 // next-auth bilan bir xil maxfiy kalitdan foydalanamiz.
-const secret = new TextEncoder().encode(
-  process.env.NEXTAUTH_SECRET || 'dev_secret_change_me'
-);
+// Zaif fallback YO'Q — secret sozlanmagan bo'lsa ishga tushmaydi (xavfsizlik).
+if (!process.env.NEXTAUTH_SECRET) {
+  throw new Error('NEXTAUTH_SECRET sozlanmagan — mobil JWT uchun majburiy');
+}
+const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET);
 
 // Ishchi uchun token chiqarish (login paytida)
 export async function signWorkerToken(workerId: string): Promise<string> {

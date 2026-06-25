@@ -36,14 +36,12 @@ export default function LoginPage() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      fontFamily: "'DM Sans', sans-serif",
+      fontFamily: "var(--font-sans)",
       position: 'relative',
       overflow: 'hidden',
       padding: '20px',
     }}>
-      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
-
-      {/* Ambient fon — oltin nur + vignette */}
+{/* Ambient fon — oltin nur + vignette */}
       <div aria-hidden style={{ position: 'absolute', top: '-15%', left: '50%', transform: 'translateX(-50%)', width: '700px', height: '500px', background: 'radial-gradient(circle, rgba(240,192,64,0.16) 0%, rgba(240,192,64,0) 70%)', pointerEvents: 'none' }} />
       <div aria-hidden style={{ position: 'absolute', bottom: '-20%', right: '-10%', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(96,165,250,0.07) 0%, rgba(96,165,250,0) 70%)', pointerEvents: 'none' }} />
 
@@ -55,10 +53,10 @@ export default function LoginPage() {
             background: 'linear-gradient(135deg, #f5cf5a 0%, #e0b030 100%)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '26px', fontWeight: 800, color: '#0f1117',
-            fontFamily: "'Syne', sans-serif", margin: '0 auto 18px',
+            fontFamily: "var(--font-display)", margin: '0 auto 18px',
             boxShadow: '0 8px 30px rgba(240,192,64,0.35)',
           }}>T</div>
-          <h1 style={{ fontFamily: "'Syne', sans-serif", fontSize: '30px', fontWeight: 800, margin: '0 0 8px', background: 'linear-gradient(135deg, #fff 0%, #999 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.5px' }}>
+          <h1 style={{ fontFamily: "var(--font-display)", fontSize: '30px', fontWeight: 800, margin: '0 0 8px', background: 'linear-gradient(135deg, #fff 0%, #999 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.5px' }}>
             Tabel
           </h1>
           <p style={{ color: '#666', margin: 0, fontSize: '14px' }}>Davomat va CRM tizimi</p>
@@ -105,7 +103,7 @@ export default function LoginPage() {
             onClick={handleSubmit}
             disabled={loading}
             className="tabel-btn"
-            style={{ width: '100%', background: 'linear-gradient(135deg, #f5cf5a 0%, #e6b733 100%)', color: '#0f1117', border: 'none', borderRadius: '10px', padding: '14px', fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '15px', cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.7 : 1, transition: 'transform 0.12s, box-shadow 0.15s' }}
+            style={{ width: '100%', background: 'linear-gradient(135deg, #f5cf5a 0%, #e6b733 100%)', color: '#0f1117', border: 'none', borderRadius: '10px', padding: '14px', fontFamily: "var(--font-display)", fontWeight: 700, fontSize: '15px', cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.7 : 1, transition: 'transform 0.12s, box-shadow 0.15s' }}
           >
             {loading ? 'Kirilmoqda...' : 'Kirish →'}
           </button>

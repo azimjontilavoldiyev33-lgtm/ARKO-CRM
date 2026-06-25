@@ -66,15 +66,14 @@ export default function ReportsPage() {
   const inputCls = 'bg-[#0f1117] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-[#e8e8e8] text-sm outline-none focus:border-[#3a3d4a]';
 
   return (
-    <div className="min-h-screen bg-[#0f1117] text-[#e8e8e8]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap');`}</style>
+    <div className="min-h-screen bg-[#0f1117] text-[#e8e8e8]" style={{ fontFamily: "var(--font-sans)" }}>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Header + month nav */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-5">
           <div>
             <p className="text-[#f0c040] text-[11px] uppercase tracking-[2px] mb-1">{company || 'Tabel'}</p>
-            <h1 className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-br from-white to-[#888] bg-clip-text text-transparent m-0" style={{ fontFamily: "'Syne', sans-serif" }}>
+            <h1 className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-br from-white to-[#888] bg-clip-text text-transparent m-0" style={{ fontFamily: "var(--font-display)" }}>
               Hisobotlar
             </h1>
           </div>
@@ -91,26 +90,26 @@ export default function ReportsPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
           <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] p-4">
             <p className="text-[#666] text-[10px] uppercase tracking-widest m-0 mb-2">Daromad</p>
-            <p className="text-lg sm:text-2xl font-extrabold text-emerald-400 m-0 whitespace-nowrap" style={{ fontFamily: "'Syne', sans-serif" }}>{fmt(data?.income ?? 0)}</p>
+            <p className="text-lg sm:text-2xl font-extrabold text-emerald-400 m-0 whitespace-nowrap" style={{ fontFamily: "var(--font-display)" }}>{fmt(data?.income ?? 0)}</p>
           </div>
           <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] p-4">
             <p className="text-[#666] text-[10px] uppercase tracking-widest m-0 mb-2">Xarajat</p>
-            <p className="text-lg sm:text-2xl font-extrabold text-red-400 m-0 whitespace-nowrap" style={{ fontFamily: "'Syne', sans-serif" }}>{fmt(data?.expense ?? 0)}</p>
+            <p className="text-lg sm:text-2xl font-extrabold text-red-400 m-0 whitespace-nowrap" style={{ fontFamily: "var(--font-display)" }}>{fmt(data?.expense ?? 0)}</p>
           </div>
           <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] p-4">
             <p className="text-[#666] text-[10px] uppercase tracking-widest m-0 mb-2">Oylik fond</p>
-            <p className="text-lg sm:text-2xl font-extrabold text-amber-400 m-0 whitespace-nowrap" style={{ fontFamily: "'Syne', sans-serif" }}>{fmt(data?.payroll ?? 0)}</p>
+            <p className="text-lg sm:text-2xl font-extrabold text-amber-400 m-0 whitespace-nowrap" style={{ fontFamily: "var(--font-display)" }}>{fmt(data?.payroll ?? 0)}</p>
           </div>
           <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] p-4">
             <p className="text-[#666] text-[10px] uppercase tracking-widest m-0 mb-2">Foyda</p>
-            <p className={`text-lg sm:text-2xl font-extrabold m-0 whitespace-nowrap ${(data?.profit ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`} style={{ fontFamily: "'Syne', sans-serif" }}>{fmt(data?.profit ?? 0)}</p>
+            <p className={`text-lg sm:text-2xl font-extrabold m-0 whitespace-nowrap ${(data?.profit ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`} style={{ fontFamily: "var(--font-display)" }}>{fmt(data?.profit ?? 0)}</p>
           </div>
         </div>
 
         {/* Trend chart */}
         <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] p-4 sm:p-5 mb-5">
           <div className="flex items-center justify-between mb-4">
-            <p className="m-0 font-bold text-sm" style={{ fontFamily: "'Syne', sans-serif" }}>6 oylik trend</p>
+            <p className="m-0 font-bold text-sm" style={{ fontFamily: "var(--font-display)" }}>6 oylik trend</p>
             <div className="flex items-center gap-3 text-[11px] text-[#888]">
               <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-500 inline-block" /> Daromad</span>
               <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-red-500 inline-block" /> Xarajat+oylik</span>
@@ -132,7 +131,7 @@ export default function ReportsPage() {
 
         {/* Add transaction */}
         <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] p-4 sm:p-5 mb-5">
-          <p className="m-0 mb-3 font-bold text-sm" style={{ fontFamily: "'Syne', sans-serif" }}>Yozuv qo&apos;shish</p>
+          <p className="m-0 mb-3 font-bold text-sm" style={{ fontFamily: "var(--font-display)" }}>Yozuv qo&apos;shish</p>
           <div className="flex flex-col sm:flex-row gap-2">
             <div className="flex rounded-lg overflow-hidden border border-[#2a2d3a] shrink-0">
               <button onClick={() => setType('income')} className={`px-3 py-2.5 text-sm font-semibold transition ${form.type === 'income' ? 'bg-emerald-500 text-[#0f1117]' : 'bg-[#0f1117] text-[#888]'}`}>+ Daromad</button>
@@ -150,7 +149,7 @@ export default function ReportsPage() {
 
         {/* Transactions list */}
         <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] overflow-hidden">
-          <p className="m-0 px-4 sm:px-5 py-3 font-bold text-sm border-b border-[#2a2d3a]" style={{ fontFamily: "'Syne', sans-serif" }}>
+          <p className="m-0 px-4 sm:px-5 py-3 font-bold text-sm border-b border-[#2a2d3a]" style={{ fontFamily: "var(--font-display)" }}>
             {MONTHS[month - 1]} yozuvlari {data ? `(${data.transactions.length})` : ''}
           </p>
           {loading ? (

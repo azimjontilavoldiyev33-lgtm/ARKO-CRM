@@ -47,7 +47,7 @@ function StatCard({ label, value, color, icon, chip, suffix }: { label: string; 
         <p className="text-[#666] text-[10px] sm:text-[11px] uppercase tracking-widest m-0">{label}</p>
         <span className={`w-8 h-8 rounded-lg ${chip} ${color} flex items-center justify-center text-sm shrink-0`}>{icon}</span>
       </div>
-      <p className={`text-xl sm:text-2xl font-extrabold ${color} whitespace-nowrap`} style={{ fontFamily: "'Syne', sans-serif" }}>
+      <p className={`text-xl sm:text-2xl font-extrabold ${color} whitespace-nowrap`} style={{ fontFamily: "var(--font-display)" }}>
         {value}{suffix && <span className="text-sm font-semibold text-[#666] ml-1">{suffix}</span>}
       </p>
     </div>
@@ -71,7 +71,7 @@ function MaterialModal({ initial, onClose, onSubmit, saving }: { initial?: Mater
     <div className="fixed inset-0 bg-black/80 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="bg-[#1a1d27] rounded-t-3xl sm:rounded-2xl border border-[#2a2d3a] w-full sm:max-w-lg p-6 pb-10 sm:pb-6 max-h-[92vh] overflow-y-auto animate-slide-up">
         <div className="w-8 h-1 bg-[#2a2d3a] rounded-full mx-auto mb-5 sm:hidden" />
-        <h2 className="text-lg font-extrabold text-white mb-5" style={{ fontFamily: "'Syne', sans-serif" }}>
+        <h2 className="text-lg font-extrabold text-white mb-5" style={{ fontFamily: "var(--font-display)" }}>
           {isEdit ? 'Materialni tahrirlash' : 'Yangi material'}
         </h2>
 
@@ -114,7 +114,7 @@ function MaterialModal({ initial, onClose, onSubmit, saving }: { initial?: Mater
             onClick={() => valid && onSubmit(form)}
             disabled={!valid || saving}
             className="py-3 rounded-xl bg-[#f0c040] text-[#0f1117] text-sm font-bold hover:bg-[#d4a832] disabled:opacity-40 disabled:cursor-not-allowed transition"
-            style={{ fontFamily: "'Syne', sans-serif" }}
+            style={{ fontFamily: "var(--font-display)" }}
           >
             {saving ? 'Saqlanmoqda...' : 'Saqlash'}
           </button>
@@ -141,7 +141,7 @@ function MovementModal({ material, presetType, onClose, onSubmit, saving }: { ma
     <div className="fixed inset-0 bg-black/80 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="bg-[#1a1d27] rounded-t-3xl sm:rounded-2xl border border-[#2a2d3a] w-full sm:max-w-md p-6 pb-10 sm:pb-6 animate-slide-up">
         <div className="w-8 h-1 bg-[#2a2d3a] rounded-full mx-auto mb-5 sm:hidden" />
-        <h2 className="text-lg font-extrabold text-white mb-1" style={{ fontFamily: "'Syne', sans-serif" }}>{material.name}</h2>
+        <h2 className="text-lg font-extrabold text-white mb-1" style={{ fontFamily: "var(--font-display)" }}>{material.name}</h2>
         <p className="text-xs text-[#666] mb-5">Joriy qoldiq: <span className="text-[#e8e8e8] font-semibold">{fmtQty(material.quantity)} {material.unit}</span></p>
 
         {/* Type toggle */}
@@ -189,7 +189,7 @@ function MovementModal({ material, presetType, onClose, onSubmit, saving }: { ma
             onClick={() => valid && onSubmit({ type, quantity: qty, note, expenseAmount: type === 'in' && recordExpense ? effExpense : 0 })}
             disabled={!valid || saving}
             className={`py-3 rounded-xl text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed transition ${type === 'in' ? 'bg-emerald-500 text-[#0f1117] hover:bg-emerald-400' : 'bg-red-500 text-white hover:bg-red-400'}`}
-            style={{ fontFamily: "'Syne', sans-serif" }}
+            style={{ fontFamily: "var(--font-display)" }}
           >
             {saving ? '...' : type === 'in' ? 'Kirim qilish' : 'Chiqim qilish'}
           </button>
@@ -207,7 +207,7 @@ function HistoryModal({ material, movements, loading, onClose }: { material: Mat
         <div className="w-8 h-1 bg-[#2a2d3a] rounded-full mx-auto mb-5 sm:hidden" />
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-base font-extrabold text-white" style={{ fontFamily: "'Syne', sans-serif" }}>{material.name}</h2>
+            <h2 className="text-base font-extrabold text-white" style={{ fontFamily: "var(--font-display)" }}>{material.name}</h2>
             <p className="text-xs text-[#666] mt-0.5">Harakatlar tarixi</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg bg-[#2a2d3a] text-[#888] flex items-center justify-center hover:text-white transition text-sm shrink-0">✕</button>
@@ -331,7 +331,6 @@ export default function InventoryPage() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap');
         @keyframes slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
         @keyframes fade-in  { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
         .animate-slide-up   { animation: slide-up 0.25s ease both; }
@@ -343,21 +342,21 @@ export default function InventoryPage() {
       {moveModal && <MovementModal material={moveModal.material} presetType={moveModal.type} onClose={() => setMoveModal(null)} onSubmit={submitMovement} saving={saving} />}
       {historyFor && <HistoryModal material={historyFor} movements={history} loading={historyLoading} onClose={() => setHistoryFor(null)} />}
 
-      <div className="min-h-screen bg-[#0f1117] text-[#e8e8e8]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+      <div className="min-h-screen bg-[#0f1117] text-[#e8e8e8]" style={{ fontFamily: "var(--font-sans)" }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
 
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6 sm:mb-8">
             <div>
               <p className="text-[#f0c040] text-[11px] uppercase tracking-[2px] mb-1">{company || 'Tabel'}</p>
-              <h1 className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-br from-white to-[#888] bg-clip-text text-transparent m-0" style={{ fontFamily: "'Syne', sans-serif" }}>
+              <h1 className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-br from-white to-[#888] bg-clip-text text-transparent m-0" style={{ fontFamily: "var(--font-display)" }}>
                 Ombor
               </h1>
             </div>
             <button
               onClick={() => setMatModal({ editing: null })}
               className="self-start sm:self-auto bg-[#f0c040] text-[#0f1117] text-sm font-bold px-5 py-3 rounded-xl hover:bg-[#d4a832] active:scale-95 transition whitespace-nowrap"
-              style={{ fontFamily: "'Syne', sans-serif" }}
+              style={{ fontFamily: "var(--font-display)" }}
             >
               + Material qo'shish
             </button>
@@ -409,7 +408,7 @@ export default function InventoryPage() {
                           <p className="text-xs text-[#555] mt-0.5">{m.price > 0 ? `${fmtMoney(m.price)} so'm / ${m.unit}` : m.unit}</p>
                         </div>
                         <div className="text-right shrink-0">
-                          <p className={`text-lg font-extrabold m-0 ${low ? 'text-amber-400' : 'text-white'}`} style={{ fontFamily: "'Syne', sans-serif" }}>{fmtQty(m.quantity)}</p>
+                          <p className={`text-lg font-extrabold m-0 ${low ? 'text-amber-400' : 'text-white'}`} style={{ fontFamily: "var(--font-display)" }}>{fmtQty(m.quantity)}</p>
                           <p className="text-[10px] text-[#555] m-0">{m.unit}</p>
                         </div>
                       </div>
@@ -438,7 +437,7 @@ export default function InventoryPage() {
                         <p className="text-xs font-semibold text-emerald-400">{m.price > 0 ? `${fmtMoney(m.quantity * m.price)}` : '—'}</p>
                       </div>
                       <div className="shrink-0 text-right min-w-[80px]">
-                        <p className={`text-lg font-extrabold m-0 ${low ? 'text-amber-400' : 'text-white'}`} style={{ fontFamily: "'Syne', sans-serif" }}>{fmtQty(m.quantity)}</p>
+                        <p className={`text-lg font-extrabold m-0 ${low ? 'text-amber-400' : 'text-white'}`} style={{ fontFamily: "var(--font-display)" }}>{fmtQty(m.quantity)}</p>
                         <p className="text-[10px] text-[#555] m-0">{m.unit}</p>
                       </div>
                       <RowActions compact onIn={() => setMoveModal({ material: m, type: 'in' })} onOut={() => setMoveModal({ material: m, type: 'out' })} onHistory={() => openHistory(m)} onEdit={() => setMatModal({ editing: m })} onDelete={() => deleteMaterial(m)} />

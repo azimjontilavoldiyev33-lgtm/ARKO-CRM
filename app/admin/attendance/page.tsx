@@ -43,7 +43,7 @@ function StatCard({ label, value, color, icon, chip }: { label: string; value: n
         <p className="text-[#666] text-[10px] sm:text-[11px] uppercase tracking-widest m-0">{label}</p>
         <span className={`w-8 h-8 rounded-lg ${chip} ${color} flex items-center justify-center text-sm shrink-0`}>{icon}</span>
       </div>
-      <p className={`text-2xl sm:text-3xl font-extrabold ${color}`} style={{ fontFamily: "'Syne', sans-serif" }}>
+      <p className={`text-2xl sm:text-3xl font-extrabold ${color}`} style={{ fontFamily: "var(--font-display)" }}>
         {value}
       </p>
     </div>
@@ -114,8 +114,7 @@ export default function AttendancePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f1117] text-[#e8e8e8]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap');`}</style>
+    <div className="min-h-screen bg-[#0f1117] text-[#e8e8e8]" style={{ fontFamily: "var(--font-sans)" }}>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
 
@@ -124,7 +123,7 @@ export default function AttendancePage() {
           <p className="text-[#f0c040] text-[11px] uppercase tracking-[2px] mb-1">{company || 'Tabel'}</p>
           <h1
             className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-br from-white to-[#888] bg-clip-text text-transparent m-0"
-            style={{ fontFamily: "'Syne', sans-serif" }}
+            style={{ fontFamily: "var(--font-display)" }}
           >
             Davomat
           </h1>
@@ -165,7 +164,7 @@ export default function AttendancePage() {
             <button
               onClick={() => fetchRecords()}
               className="bg-[#f0c040] text-[#0f1117] font-bold text-sm px-5 py-2.5 rounded-xl hover:bg-[#d4a832] transition whitespace-nowrap"
-              style={{ fontFamily: "'Syne', sans-serif" }}
+              style={{ fontFamily: "var(--font-display)" }}
             >
               Qidirish
             </button>

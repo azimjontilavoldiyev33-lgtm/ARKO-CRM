@@ -39,8 +39,8 @@ export async function POST(req: Request) {
     const code = await generateCode();
     const worker = await Worker.create({ ...body, code, company: auth.companyId });
     return NextResponse.json(worker, { status: 201 });
-  } catch (err: any) {
-    if (err.code === 11000) {
+  } catch (err) {
+    if (err && typeof err === 'object' && 'code' in err && err.code === 11000) {
       return NextResponse.json({ error: 'Bu telefon raqam allaqachon mavjud' }, { status: 400 });
     }
     return NextResponse.json({ error: 'Xato yuz berdi' }, { status: 500 });

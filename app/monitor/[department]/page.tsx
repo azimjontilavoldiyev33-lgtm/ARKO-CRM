@@ -382,9 +382,16 @@ function TaskCard({ task }: { task: Task }) {
   const overdue = isOverdue(task);
   const days    = daysLeft(task.deadline);
 
+  // Joriy vaqtni render paytida emas, effektda o'qiymiz (React purity qoidasi).
+  const [now, setNow] = useState(0);
+  useEffect(() => {
+    setNow(Date.now());
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
   const createdAt  = new Date(task.createdAt).getTime();
   const deadlineAt = new Date(task.deadline).getTime();
-  const now        = Date.now();
   const total      = deadlineAt - createdAt;
   const elapsed    = now - createdAt;
   const progress   = Math.min(100, Math.max(0, (elapsed / total) * 100));

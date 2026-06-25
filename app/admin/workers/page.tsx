@@ -95,18 +95,13 @@ const [form, setForm] = useState({ fullName: '', phoneNumber: '', position: '', 
 
   return (
     <div className="min-h-screen bg-[#0f1117] text-[#e8e8e8] font-sans p-4 sm:p-6 lg:p-8">
-      <link
-        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@700;800&display=swap"
-        rel="stylesheet"
-      />
-
-      {/* ── Header ─────────────────────────────────────────── */}
+{/* ── Header ─────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8 sm:mb-10">
         <div>
           <p className="text-[#f0c040] text-[11px] tracking-[2px] uppercase mb-1.5">{company || 'Tabel'}</p>
           <h1
             className="text-3xl sm:text-4xl font-extrabold m-0 bg-gradient-to-br from-white to-[#888] bg-clip-text text-transparent"
-            style={{ fontFamily: "'Syne', sans-serif" }}
+            style={{ fontFamily: "var(--font-display)" }}
           >
             Ustalar
           </h1>
@@ -114,7 +109,7 @@ const [form, setForm] = useState({ fullName: '', phoneNumber: '', position: '', 
         <button
           onClick={() => { setError(''); setShowModal(true); }}
           className="self-start sm:self-auto bg-[#f0c040] text-[#0f1117] border-none rounded-xl px-5 py-3 font-bold text-sm cursor-pointer tracking-wide hover:bg-[#f5d060] transition-colors"
-          style={{ fontFamily: "'Syne', sans-serif" }}
+          style={{ fontFamily: "var(--font-display)" }}
         >
           + Usta qo'shish
         </button>
@@ -134,7 +129,7 @@ const [form, setForm] = useState({ fullName: '', phoneNumber: '', position: '', 
             </div>
             <p
               className={`text-3xl sm:text-4xl font-extrabold m-0 ${stat.color}`}
-              style={{ fontFamily: "'Syne', sans-serif" }}
+              style={{ fontFamily: "var(--font-display)" }}
             >
               {stat.value}
             </p>
@@ -295,7 +290,7 @@ const [form, setForm] = useState({ fullName: '', phoneNumber: '', position: '', 
           <div className="bg-[#1a1d27] rounded-t-3xl sm:rounded-2xl p-6 sm:p-8 w-full sm:max-w-md border border-[#2a2d3a]">
             <h2
               className="text-xl sm:text-2xl font-extrabold m-0 mb-6"
-              style={{ fontFamily: "'Syne', sans-serif" }}
+              style={{ fontFamily: "var(--font-display)" }}
             >
               Yangi usta
             </h2>
@@ -339,7 +334,7 @@ const [form, setForm] = useState({ fullName: '', phoneNumber: '', position: '', 
                 onClick={handleSubmit}
                 disabled={saving}
                 className="flex-1 bg-[#f0c040] text-[#0f1117] border-none rounded-xl py-3 font-bold text-sm cursor-pointer hover:bg-[#f5d060] disabled:opacity-60 transition-colors"
-                style={{ fontFamily: "'Syne', sans-serif" }}
+                style={{ fontFamily: "var(--font-display)" }}
               >
                 {saving ? 'Saqlanmoqda...' : 'Saqlash'}
               </button>

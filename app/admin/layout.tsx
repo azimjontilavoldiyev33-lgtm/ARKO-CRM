@@ -89,14 +89,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       display: 'flex',
       minHeight: '100vh',
       background: '#0f1117',
-      fontFamily: "'DM Sans', sans-serif",
+      fontFamily: "var(--font-sans)",
     }}>
-      <link
-        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@700;800&display=swap"
-        rel="stylesheet"
-      />
-
-      {/* ── Backdrop (mobile only) ─────────────────────────── */}
+{/* ── Backdrop (mobile only) ─────────────────────────── */}
       <div
         onClick={() => setOpen(false)}
         aria-hidden="true"
@@ -131,7 +126,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           transform: open ? 'translateX(0)' : 'translateX(-100%)',
           transition: 'transform 0.22s cubic-bezier(0.4,0,0.2,1)',
         }}
-        // @ts-ignore — inline CSS class trick for desktop override
         className="admin-sidebar"
       >
         {/* Logo */}
@@ -141,7 +135,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               Davomat + CRM
             </p>
             <h2 style={{
-              fontFamily: "'Syne', sans-serif",
+              fontFamily: "var(--font-display)",
               fontSize: '20px',
               fontWeight: 800,
               margin: 0,
@@ -215,7 +209,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '14px', fontWeight: 800,
               color: '#0f1117',
-              fontFamily: "'Syne', sans-serif",
+              fontFamily: "var(--font-display)",
               flexShrink: 0,
             }}>{avatarLetter}</div>
             <div style={{ minWidth: 0 }}>
@@ -281,7 +275,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </button>
 
           <span style={{
-            fontFamily: "'Syne', sans-serif",
+            fontFamily: "var(--font-display)",
             fontSize: '15px',
             fontWeight: 700,
             color: '#e8e8e8',
@@ -303,7 +297,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {blockedByPlan ? (
             <div style={{ minHeight: '70vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '24px' }}>
               <div style={{ fontSize: '44px', marginBottom: '16px' }}>🔒</div>
-              <h2 style={{ fontFamily: "'Syne', sans-serif", color: '#e8e8e8', fontSize: '22px', margin: '0 0 8px' }}>Bu bo&apos;lim Pro tarifda</h2>
+              <h2 style={{ fontFamily: "var(--font-display)", color: '#e8e8e8', fontSize: '22px', margin: '0 0 8px' }}>Bu bo&apos;lim Pro tarifda</h2>
               <p style={{ color: '#888', fontSize: '14px', maxWidth: '380px', margin: 0, lineHeight: 1.6 }}>
                 Buyurtma, vazifa va ish zanjiri — Pro tarif imkoniyatlari. Yoqish uchun administrator bilan bog&apos;laning.
               </p>

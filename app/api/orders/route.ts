@@ -31,7 +31,7 @@ export async function POST(req: Request) {
     // Buyurtma to'g'ridan-to'g'ri "completed" yaratilsa ham daromad yoziladi (UI odatda "new" yaratadi)
     await reconcileOrderIncome(auth.companyId, order);
     return NextResponse.json(order, { status: 201 });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Xato yuz berdi' }, { status: 500 });
   }
 }

@@ -11,7 +11,7 @@ export async function GET() {
     await connectDB();
     const location = await OfficeLocation.findOne({ company: auth.companyId });
     return NextResponse.json({ success: true, data: location });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ success: false, message: 'Xatolik yuz berdi' }, { status: 500 });
   }
 }
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     );
 
     return NextResponse.json({ success: true, data: location });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ success: false, message: 'Xatolik yuz berdi' }, { status: 500 });
   }
 }

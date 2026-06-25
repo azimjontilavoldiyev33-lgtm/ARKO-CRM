@@ -1,26 +1,75 @@
 @import "tailwindcss";
 
+/* ─── Design tokens ─────────────────────────────────────────────
+   Yagona manba: ranglar, shriftlar va elevation. Tailwind utilitalari
+   (font-sans, font-display, bg-surface ...) shu yerdan oziqlanadi va
+   inline style'larda var(--...) orqali ishlatiladi.
+   (inline EMAS — shunda o'zgaruvchilar :root ga chiqib, inline style'da ishlaydi) */
+@theme {
+  /* Shriftlar */
+  --font-sans: var(--font-dm-sans), system-ui, sans-serif;
+  --font-display: var(--font-syne), var(--font-dm-sans), sans-serif;
+
+  /* Fon / elevation qatlamlari (eng chuqurdan kartagacha) */
+  --color-base: #0b0d13;
+  --color-bg: #0f1117;
+  --color-panel: #13151e;
+  --color-surface: #1a1d27;
+  --color-elevated: #1e2235;
+
+  /* Chegaralar */
+  --color-border: #2a2d3a;
+  --color-border-soft: #1e2130;
+
+  /* Matn */
+  --color-text: #e8e8e8;
+  --color-muted: #9aa0ad;       /* WCAG AA — oldingi #888/#555 o'rniga kuchaytirildi */
+  --color-faint: #7a7d8a;
+
+  /* Aksent + semantik */
+  --color-accent: #f0c040;
+  --color-success: #4ade80;
+  --color-danger: #f87171;
+  --color-info: #60a5fa;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Accessibility: ko'rinadigan fokus halqasi ───────────────── */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* Sichqoncha bilan bosishda halqa chiqmaydi (faqat klaviatura) */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ─── Maxsus scrollbar (dark temaga mos) ──────────────────────── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 8px;
+  border: 2px solid var(--color-bg);
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: #3a3d4a;
 }

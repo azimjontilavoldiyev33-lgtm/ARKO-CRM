@@ -75,8 +75,7 @@ export default function KpiPage() {
   const pv = data?.pointValue ?? 0;
 
   return (
-    <div className="min-h-screen bg-[#0f1117] text-[#e8e8e8]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap');`}</style>
+    <div className="min-h-screen bg-[#0f1117] text-[#e8e8e8]" style={{ fontFamily: "var(--font-sans)" }}>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
 
@@ -84,7 +83,7 @@ export default function KpiPage() {
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-5">
           <div>
             <p className="text-[#f0c040] text-[11px] uppercase tracking-[2px] mb-1">{company || 'Tabel'}</p>
-            <h1 className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-br from-white to-[#888] bg-clip-text text-transparent m-0" style={{ fontFamily: "'Syne', sans-serif" }}>
+            <h1 className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-br from-white to-[#888] bg-clip-text text-transparent m-0" style={{ fontFamily: "var(--font-display)" }}>
               Samaradorlik · KPI
             </h1>
           </div>
@@ -108,28 +107,28 @@ export default function KpiPage() {
               <p className="text-[#666] text-[10px] sm:text-[11px] uppercase tracking-widest m-0">Bajarilgan vazifa</p>
               <span className="w-8 h-8 rounded-lg bg-[#142614] text-emerald-400 flex items-center justify-center text-sm shrink-0">✅</span>
             </div>
-            <p className="text-2xl sm:text-3xl font-extrabold text-emerald-400 m-0" style={{ fontFamily: "'Syne', sans-serif" }}>{s?.totalCompleted ?? 0}</p>
+            <p className="text-2xl sm:text-3xl font-extrabold text-emerald-400 m-0" style={{ fontFamily: "var(--font-display)" }}>{s?.totalCompleted ?? 0}</p>
           </div>
           <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] p-4 sm:p-5">
             <div className="flex justify-between items-start mb-2">
               <p className="text-[#666] text-[10px] sm:text-[11px] uppercase tracking-widest m-0">Jami ball</p>
               <span className="w-8 h-8 rounded-lg bg-[#15233a] text-blue-400 flex items-center justify-center text-sm shrink-0">⚖️</span>
             </div>
-            <p className={`text-2xl sm:text-3xl font-extrabold m-0 ${(s?.totalPoints ?? 0) > 0 ? 'text-emerald-400' : (s?.totalPoints ?? 0) < 0 ? 'text-red-400' : 'text-white'}`} style={{ fontFamily: "'Syne', sans-serif" }}>{(s?.totalPoints ?? 0) > 0 ? '+' : ''}{s?.totalPoints ?? 0}</p>
+            <p className={`text-2xl sm:text-3xl font-extrabold m-0 ${(s?.totalPoints ?? 0) > 0 ? 'text-emerald-400' : (s?.totalPoints ?? 0) < 0 ? 'text-red-400' : 'text-white'}`} style={{ fontFamily: "var(--font-display)" }}>{(s?.totalPoints ?? 0) > 0 ? '+' : ''}{s?.totalPoints ?? 0}</p>
           </div>
           <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] p-4 sm:p-5">
             <div className="flex justify-between items-start mb-2">
               <p className="text-[#666] text-[10px] sm:text-[11px] uppercase tracking-widest m-0">O&apos;rtacha o&apos;z vaqtida</p>
               <span className="w-8 h-8 rounded-lg bg-[#2a2410] text-[#f0c040] flex items-center justify-center text-sm shrink-0">🎯</span>
             </div>
-            <p className="text-2xl sm:text-3xl font-extrabold text-[#f0c040] m-0" style={{ fontFamily: "'Syne', sans-serif" }}>{s?.avgOnTime != null ? s.avgOnTime + '%' : '—'}</p>
+            <p className="text-2xl sm:text-3xl font-extrabold text-[#f0c040] m-0" style={{ fontFamily: "var(--font-display)" }}>{s?.avgOnTime != null ? s.avgOnTime + '%' : '—'}</p>
           </div>
           <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] p-4 sm:p-5">
             <div className="flex justify-between items-start mb-2">
               <p className="text-[#666] text-[10px] sm:text-[11px] uppercase tracking-widest m-0">Eng samarali usta</p>
               <span className="w-8 h-8 rounded-lg bg-[#2a1a2a] text-[#c084fc] flex items-center justify-center text-sm shrink-0">👑</span>
             </div>
-            <p className="text-lg sm:text-xl font-extrabold text-[#c084fc] m-0 truncate" style={{ fontFamily: "'Syne', sans-serif" }} title={s?.top || ''}>{s?.top || '—'}</p>
+            <p className="text-lg sm:text-xl font-extrabold text-[#c084fc] m-0 truncate" style={{ fontFamily: "var(--font-display)" }} title={s?.top || ''}>{s?.top || '—'}</p>
           </div>
         </div>
 
