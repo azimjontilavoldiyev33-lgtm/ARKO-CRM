@@ -4,11 +4,21 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch, clearSession, getPosition, getToken, getWorker, type WorkerInfo } from './_lib/store';
 import InstallPWAButton from '../_lib/InstallPWAButton';
+import NotificationButton from './_lib/NotificationButton';
 
 type AttEvent = {
   _id: string;
   type: 'check-in' | 'check-out';
   timestamp: string;
+};
+
+type WorkTask = {
+  _id: string;
+  title: string;
+  description?: string;
+  deadline: string;
+  status: 'pending' | 'in_progress' | 'completed';
+  order?: { title: string } | null;
 };
 
 type Toast = { kind: 'ok' | 'err'; text: string } | null;
@@ -20,6 +30,9 @@ export default function IshHome() {
   const [busy, setBusy] = useState<null | 'in' | 'out'>(null);
   const [loadingReport, setLoadingReport] = useState(true);
   const [toast, setToast] = useState<Toast>(null);
+  const [tasks, setTasks] = useState<WorkTask[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState(true);
+  const [taskBusy, setTaskBusy] = useState<string | null>(null);
 
   const loadReport = useCallback(async () => {
     setLoadingReport(true);
@@ -39,6 +52,23 @@ export default function IshHome() {
     }
   }, [router]);
 
+  const loadTasks = useCallback(async () => {
+    try {
+      const res = await apiFetch('/api/mobile/tasks');
+      if (res.status === 401) {
+        clearSession();
+        router.replace('/ish/login');
+        return;
+      }
+      const data = await res.json();
+      if (data?.success) setTasks(data.data as WorkTask[]);
+    } catch {
+      /* tarmoq yo'q — jim turamiz */
+    } finally {
+      setLoadingTasks(false);
+    }
+  }, [router]);
+
   useEffect(() => {
     if (!getToken()) {
       router.replace('/ish/login');
@@ -46,7 +76,34 @@ export default function IshHome() {
     }
     setWorker(getWorker());
     loadReport();
-  }, [router, loadReport]);
+    loadTasks();
+
+    // Admin yangi vazifa bersa / monitorda o'zgarsa — telefonda jonli yangilanadi
+    const es = new EventSource('/api/sse');
+    es.onmessage = () => loadTasks();
+    return () => es.close();
+  }, [router, loadReport, loadTasks]);
+
+  const handleTask = async (taskId: string, action: 'start' | 'complete') => {
+    setTaskBusy(taskId);
+    try {
+      const res = await apiFetch(`/api/mobile/tasks/${taskId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json();
+      if (data?.success) {
+        showToast({ kind: 'ok', text: action === 'start' ? '▶️ Vazifa boshlandi' : '✅ Vazifa tugatildi' });
+        await loadTasks();
+      } else {
+        showToast({ kind: 'err', text: data?.message || 'Xatolik yuz berdi' });
+      }
+    } catch {
+      showToast({ kind: 'err', text: 'Tarmoq xatosi' });
+    } finally {
+      setTaskBusy(null);
+    }
+  };
 
   // Eng so'nggi hodisa "keldi" bo'lsa — hozir ish joyida (ochiq sessiya)
   const isInside = events.length > 0 && events[0].type === 'check-in';
@@ -125,6 +182,9 @@ export default function IshHome() {
           <InstallPWAButton />
         </div>
 
+        {/* Bildirishnomani yoqish (faqat yoqilmagan bo'lsa ko'rinadi) */}
+        <NotificationButton />
+
         {/* Toast */}
         {toast && (
           <div style={{ ...S.toast, ...(toast.kind === 'ok' ? S.toastOk : S.toastErr) }}>{toast.text}</div>
@@ -149,6 +209,51 @@ export default function IshHome() {
             {busy === 'out' ? 'Aniqlanmoqda...' : '🚪 KETDIM'}
           </button>
         </div>
+
+        {/* Vazifalar */}
+        <section style={{ marginTop: 28 }}>
+          <h2 style={S.sectionTitle}>
+            Vazifalar{tasks.length > 0 && <span style={{ color: '#5a5d6a', fontWeight: 400 }}> · {tasks.length}</span>}
+          </h2>
+          {loadingTasks ? (
+            <p style={S.muted}>Yuklanmoqda...</p>
+          ) : tasks.length === 0 ? (
+            <p style={S.muted}>Hozircha vazifa yo&apos;q</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {tasks.map((t) => {
+                const overdue = new Date(t.deadline) < new Date();
+                const inProg = t.status === 'in_progress';
+                return (
+                  <div key={t._id} style={S.taskCard}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                      <span style={{ ...S.taskBadge, ...(inProg ? S.badgeProg : S.badgePend) }}>
+                        {inProg ? '🛠 Jarayonda' : '⏳ Kutilmoqda'}
+                      </span>
+                      <span style={{ fontSize: 12, color: overdue ? '#f87171' : '#7a7d8a', fontWeight: overdue ? 600 : 400 }}>
+                        {overdue ? '⚠ ' : '📅 '}
+                        {new Date(t.deadline).toLocaleDateString('uz-UZ', { day: '2-digit', month: '2-digit' })}
+                      </span>
+                    </div>
+
+                    <p style={{ margin: '10px 0 2px', color: '#fff', fontSize: 15, fontWeight: 600 }}>{t.title}</p>
+                    {t.order?.title && <p style={{ margin: 0, color: '#7a7d8a', fontSize: 12 }}>📦 {t.order.title}</p>}
+                    {t.description && <p style={{ margin: '6px 0 0', color: '#9aa0ad', fontSize: 13, lineHeight: 1.5 }}>{t.description}</p>}
+
+                    <button
+                      onClick={() => handleTask(t._id, inProg ? 'complete' : 'start')}
+                      disabled={taskBusy === t._id}
+                      className="task-btn"
+                      style={{ ...S.taskBtn, ...(inProg ? S.taskBtnDone : S.taskBtnStart), opacity: taskBusy === t._id ? 0.6 : 1 }}
+                    >
+                      {taskBusy === t._id ? '...' : inProg ? '✓ Tugatish' : '▶ Boshlash'}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
 
         {/* Bugungi tarix */}
         <section style={{ marginTop: 28 }}>
@@ -179,6 +284,7 @@ export default function IshHome() {
 
       <style>{`
         .big-btn:active:not(:disabled) { transform: scale(0.98); }
+        .task-btn:active:not(:disabled) { transform: scale(0.98); }
       `}</style>
     </div>
   );
@@ -263,6 +369,35 @@ const S: Record<string, React.CSSProperties> = {
   outBtn: { background: 'linear-gradient(135deg, #f5cf5a 0%, #e6b733 100%)', boxShadow: '0 10px 30px rgba(240,192,64,0.2)' },
   sectionTitle: { fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700, color: '#cfd2dc', margin: '0 0 12px' },
   muted: { color: '#5a5d6a', fontSize: 14, margin: 0 },
+  taskCard: {
+    background: '#14161f',
+    border: '1px solid #23263a',
+    borderRadius: 16,
+    padding: '14px 16px',
+  },
+  taskBadge: {
+    fontSize: 11,
+    fontWeight: 600,
+    padding: '3px 10px',
+    borderRadius: 999,
+    letterSpacing: '0.3px',
+  },
+  badgePend: { background: '#1a2333', color: '#9aabbf' },
+  badgeProg: { background: '#2a2410', color: '#f0c040' },
+  taskBtn: {
+    width: '100%',
+    marginTop: 12,
+    border: 'none',
+    borderRadius: 12,
+    padding: '12px',
+    fontFamily: "var(--font-display)",
+    fontWeight: 700,
+    fontSize: 14,
+    cursor: 'pointer',
+    transition: 'transform 0.1s, opacity 0.15s',
+  },
+  taskBtnStart: { background: 'linear-gradient(135deg, #5ee08a 0%, #2fb866 100%)', color: '#0f1117' },
+  taskBtnDone: { background: 'linear-gradient(135deg, #f5cf5a 0%, #e6b733 100%)', color: '#0f1117' },
   row: {
     display: 'flex',
     alignItems: 'center',

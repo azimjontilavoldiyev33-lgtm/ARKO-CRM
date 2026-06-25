@@ -6,6 +6,7 @@ import Worker from '@/models/Worker';
 import Pipeline from '@/models/Pipeline';
 import { notifyAll } from '@/lib/sse';
 import { getAuth } from '@/lib/auth';
+import { sendPushToWorker } from '@/lib/push';
 
 // populate('order'|'worker'|'pipelineId') ishlashi uchun bu modellar
 // Mongoose'da ro'yxatdan o'tgan bo'lishi shart. Referans — tree-shaking
@@ -50,6 +51,15 @@ export async function POST(req: Request) {
   try {
     const task = await Task.create({ ...body, company: auth.companyId });
     notifyAll();
+    // Ishchiga push bildirishnoma (fon — javobni kutmaymiz)
+    if (task.worker) {
+      void sendPushToWorker(String(task.worker), {
+        title: '🛠 Yangi vazifa',
+        body: task.title,
+        url: '/ish',
+        tag: `task-${task._id}`,
+      });
+    }
     return NextResponse.json(task, { status: 201 });
   } catch (err) {
     console.error('Task yaratishda xato:', err);

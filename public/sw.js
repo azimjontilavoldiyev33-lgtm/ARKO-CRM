@@ -1,6 +1,6 @@
 // Tabel PWA service worker — butun loyiha (admin CRM + ishchi davomat)
 // app-shell offline + installability.
-const CACHE = 'tabel-v2';
+const CACHE = 'tabel-v3';
 const OFFLINE_URL = '/offline';
 const SHELL = [
   '/',
@@ -70,5 +70,39 @@ self.addEventListener('fetch', (event) => {
           })
           .catch(() => cached)
     )
+  );
+});
+
+// ─── Web Push: bildirishnoma kelganda ko'rsatish ──────────────────
+self.addEventListener('push', (event) => {
+  let data = { title: 'Tabel', body: 'Yangi xabar', url: '/ish' };
+  try {
+    if (event.data) data = { ...data, ...event.data.json() };
+  } catch {
+    if (event.data) data.body = event.data.text();
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      tag: data.tag || 'tabel',
+      data: { url: data.url || '/ish' },
+      vibrate: [80, 40, 80],
+    })
+  );
+});
+
+// Bildirishnoma bosilganda — ilovani ochish/fokuslash
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || '/ish';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      for (const c of list) {
+        if (c.url.includes(url) && 'focus' in c) return c.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(url);
+    })
   );
 });
