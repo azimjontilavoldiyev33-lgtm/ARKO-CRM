@@ -6,6 +6,8 @@ export interface IWorker extends Document {
   telegramChatId?: string;
   position?: string;
   code?: string;        // ← yangi
+  deviceId?: string;        // davomat uchun biriktirilgan qurilma
+  deviceBoundAt?: Date;     // qachon biriktirilgan
   createdAt?: Date;
   salary?: number;
   company?: mongoose.Types.ObjectId;   // ko'p-ijara uchun
@@ -33,6 +35,14 @@ const WorkerSchema = new Schema<IWorker>({
     type: String,
     unique: true,
     sparse: true,            // null bo'lsa unique ishlamaydi
+  },
+  deviceId: {                // davomat uchun biriktirilgan qurilma identifikatori
+    type: String,
+    default: null,
+  },
+  deviceBoundAt: {
+    type: Date,
+    default: null,
   },
   createdAt: {
     type: Date,

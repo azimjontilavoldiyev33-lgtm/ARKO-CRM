@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Attendance from '@/models/Attendance';
 import OfficeLocation from '@/models/OfficeLocation';
+import Worker from '@/models/Worker';
 import { getWorkerIdFromRequest } from '@/lib/mobileAuth';
 import { distanceInMeters } from '@/lib/distance';
 import { notifyAll } from '@/lib/sse';
@@ -19,6 +20,17 @@ export async function POST(req: NextRequest) {
     }
 
     await connectDB();
+
+    // Qurilma tekshiruvi — token nusxalanib boshqa telefonda ishlatilishining oldini oladi
+    const reqDeviceId = req.headers.get('x-device-id') || '';
+    const worker = await Worker.findById(workerId).select('deviceId');
+    if (worker?.deviceId && worker.deviceId !== reqDeviceId) {
+      return NextResponse.json(
+        { success: false, message: 'Bu qurilma hisobingizga biriktirilmagan. Administrator bilan bog\'laning.' },
+        { status: 403 }
+      );
+    }
+
     const { lat, lng } = await req.json();
 
     if (lat == null || lng == null) {

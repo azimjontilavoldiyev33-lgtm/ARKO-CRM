@@ -11,6 +11,22 @@ export type WorkerInfo = {
 
 const TOKEN_KEY = 'tabel_worker_token';
 const WORKER_KEY = 'tabel_worker_info';
+const DEVICE_KEY = 'tabel_device_id';
+
+// Shu qurilma uchun barqaror identifikator. Birinchi marta yaratiladi va
+// localStorage'da saqlanadi — davomat hisobini shu qurilmaga biriktirish uchun.
+export function getDeviceId(): string {
+  if (typeof window === 'undefined') return '';
+  let id = localStorage.getItem(DEVICE_KEY);
+  if (!id) {
+    id =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : 'dev-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    localStorage.setItem(DEVICE_KEY, id);
+  }
+  return id;
+}
 
 export function getToken(): string | null {
   if (typeof window === 'undefined') return null;
@@ -46,6 +62,7 @@ export async function apiFetch(path: string, init?: RequestInit) {
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      'x-device-id': getDeviceId(),
       ...(init?.headers || {}),
     },
   });

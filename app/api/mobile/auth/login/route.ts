@@ -7,11 +7,18 @@ import { signWorkerToken } from '@/lib/mobileAuth';
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
-    const { phoneNumber } = await req.json();
+    const { phoneNumber, deviceId } = await req.json();
 
     if (!phoneNumber) {
       return NextResponse.json(
         { success: false, message: 'Telefon raqam majburiy' },
+        { status: 400 }
+      );
+    }
+
+    if (!deviceId) {
+      return NextResponse.json(
+        { success: false, message: 'Qurilma aniqlanmadi. Ilovani qayta oching.' },
         { status: 400 }
       );
     }
@@ -29,6 +36,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { success: false, message: 'Ishchi topilmadi' },
         { status: 404 }
+      );
+    }
+
+    // Qurilma biriktirish:
+    //  - Hisob hali hech qaysi qurilmaga bog'lanmagan bo'lsa — shu qurilmaga biriktiramiz.
+    //  - Boshqa qurilmaga bog'langan bo'lsa — kirishni bloklaymiz (firibgarlik oldini olish).
+    if (!worker.deviceId) {
+      worker.deviceId = deviceId;
+      worker.deviceBoundAt = new Date();
+      await worker.save();
+    } else if (worker.deviceId !== deviceId) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Bu hisob boshqa telefonga biriktirilgan. Yangi telefondan kirish uchun administrator qurilmani uzishi kerak.",
+        },
+        { status: 403 }
       );
     }
 

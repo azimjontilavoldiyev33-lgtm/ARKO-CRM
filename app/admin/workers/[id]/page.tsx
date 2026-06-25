@@ -25,6 +25,8 @@ interface Worker {
   code?: string;
   salary?: number;
   createdAt: string;
+  deviceId?: string | null;
+  deviceBoundAt?: string | null;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -416,6 +418,21 @@ export default function WorkerProfilePage() {
     fetchData();
   };
 
+  const handleResetDevice = async () => {
+    if (!confirm("Qurilma biriktirishni bekor qilasizmi? Ishchi yangi telefondan kira oladi.")) return;
+    const res = await fetch(`/api/workers/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resetDevice: true }),
+    });
+    if (res.ok) {
+      showToast('Qurilma uzildi ✓');
+      fetchData();
+    } else {
+      showToast('Xatolik yuz berdi ✗');
+    }
+  };
+
   const handleEditSave = async (data: Partial<Worker>) => {
     const res = await fetch(`/api/workers/${id}`, {
       method: 'PATCH',
@@ -569,6 +586,40 @@ export default function WorkerProfilePage() {
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* ── Davomat qurilmasi (device binding) ── */}
+          <div className="bg-[#1a1d27] rounded-2xl border border-[#2a2d3a] p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3 min-w-0">
+              <span className="w-10 h-10 rounded-xl bg-[#14161f] border border-[#2a2d3a] flex items-center justify-center text-lg shrink-0">📱</span>
+              <div className="min-w-0">
+                <p className="text-white text-sm font-semibold" style={{ fontFamily: "var(--font-display)" }}>
+                  Davomat qurilmasi
+                </p>
+                {worker.deviceId ? (
+                  <p className="text-[#9aa0ad] text-xs mt-0.5">
+                    <span className="text-emerald-400 font-semibold">● Biriktirilgan</span>
+                    {worker.deviceBoundAt && (
+                      <span className="text-[#666]"> · {new Date(worker.deviceBoundAt).toLocaleDateString('uz-UZ')} dan</span>
+                    )}
+                    <span className="block text-[#555] mt-0.5">Ishchi faqat shu telefondan davomat belgilaydi.</span>
+                  </p>
+                ) : (
+                  <p className="text-[#9aa0ad] text-xs mt-0.5">
+                    <span className="text-[#888]">○ Biriktirilmagan</span>
+                    <span className="block text-[#555] mt-0.5">Ishchi birinchi marta kirgan telefoni avtomatik biriktiriladi.</span>
+                  </p>
+                )}
+              </div>
+            </div>
+            {worker.deviceId && (
+              <button
+                onClick={handleResetDevice}
+                className="self-start sm:self-auto shrink-0 bg-[#14161f] hover:bg-[#2a1414] border border-[#2a2d3a] hover:border-[#4a1a1a] text-[#888] hover:text-[#f87171] rounded-xl px-4 py-2 text-xs font-semibold transition-all"
+              >
+                🔓 Qurilmani uzish
+              </button>
+            )}
           </div>
 
           {/* ── Stats grid ── */}

@@ -36,6 +36,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const body = await req.json();
   // Kirish kodi avtomatik — qo'lda o'zgartirishga ruxsat yo'q
   delete body.code;
+
+  // Qurilma biriktirishni faqat UZISH mumkin (ixtiyoriy deviceId qo'yishga yo'l qo'ymaymiz).
+  // { resetDevice: true } yuborilsa — biriktirish bekor qilinadi, ishchi yangi telefondan kira oladi.
+  const resetDevice = body.resetDevice === true;
+  delete body.resetDevice;
+  delete body.deviceId;
+  delete body.deviceBoundAt;
+  if (resetDevice) {
+    body.deviceId = null;
+    body.deviceBoundAt = null;
+  }
+
   try {
     const worker = await Worker.findOneAndUpdate({ _id: id, company: auth.companyId }, body, { new: true });
     return NextResponse.json(worker);

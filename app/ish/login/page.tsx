@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { saveSession, getToken } from '../_lib/store';
+import { saveSession, getToken, getDeviceId } from '../_lib/store';
 
 export default function IshLoginPage() {
   const router = useRouter();
@@ -24,7 +24,7 @@ export default function IshLoginPage() {
       const res = await fetch('/api/mobile/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber: value }),
+        body: JSON.stringify({ phoneNumber: value, deviceId: getDeviceId() }),
       });
       const data = await res.json();
       if (data?.success && data.token) {
