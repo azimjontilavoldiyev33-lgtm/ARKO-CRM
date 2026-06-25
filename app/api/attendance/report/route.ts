@@ -50,6 +50,9 @@ export async function GET(req: NextRequest) {
     }> = {};
 
     for (const record of records) {
+      // O'chirilgan ishchiga ishora qiluvchi yozuvni o'tkazib yuboramiz —
+      // aks holda populate null qaytarib, butun hisobot qulaydi (500).
+      if (!record.worker) continue;
       const date = new Date(record.checkIn).toISOString().split('T')[0];
       const key = `${record.worker._id}_${date}`;
 

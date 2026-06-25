@@ -23,13 +23,16 @@ export async function POST(req: NextRequest) {
 
     // Qurilma tekshiruvi — token nusxalanib boshqa telefonda ishlatilishining oldini oladi
     const reqDeviceId = req.headers.get('x-device-id') || '';
-    const worker = await Worker.findById(workerId).select('deviceId');
+    const worker = await Worker.findById(workerId).select('deviceId company');
     if (worker?.deviceId && worker.deviceId !== reqDeviceId) {
       return NextResponse.json(
         { success: false, message: 'Bu qurilma hisobingizga biriktirilmagan. Administrator bilan bog\'laning.' },
         { status: 403 }
       );
     }
+
+    // Davomat ishchining O'Z korxonasi bilan saqlanadi (admin shu bo'yicha ko'radi).
+    const companyId = worker?.company ? String(worker.company) : await getDefaultCompanyId();
 
     const { lat, lng } = await req.json();
 
@@ -40,8 +43,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1) Geofence — masofa SERVERda hisoblanadi
-    const office = await OfficeLocation.findOne();
+    // 1) Geofence — masofa SERVERda hisoblanadi (korxona ofisi)
+    const office =
+      (await OfficeLocation.findOne({ company: companyId })) ||
+      (await OfficeLocation.findOne());
     if (!office) {
       return NextResponse.json(
         { success: false, message: "Ishxona hududi hali sozlanmagan. Administrator bilan bog'laning." },
@@ -78,7 +83,7 @@ export async function POST(req: NextRequest) {
       worker: workerId,
       checkIn: new Date(),
       location: { latitude: lat, longitude: lng },
-      company: await getDefaultCompanyId(),
+      company: companyId,
     });
 
     // Real-time: admin panelni yangilash
