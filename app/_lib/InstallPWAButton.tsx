@@ -29,9 +29,11 @@ const OPTIONS: { mode: Mode; icon: string; label: string; sub: string; url: stri
 export default function InstallPWAButton({
   style,
   fullWidth = false,
+  dropUp = false,
 }: {
   style?: CSSProperties;
   fullWidth?: boolean;
+  dropUp?: boolean;
 }) {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [installed, setInstalled] = useState(false);
@@ -62,7 +64,6 @@ export default function InstallPWAButton({
     };
   }, []);
 
-  // Dropdown tashqarisini bosganda yopish
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
@@ -75,8 +76,8 @@ export default function InstallPWAButton({
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
+  // O'rnatilgan bo'lsa ko'rsatmaymiz
   if (installed) return null;
-  if (!deferred && !isIOS) return null;
 
   const handleOption = async (mode: Mode) => {
     if (deferred) {
@@ -88,13 +89,24 @@ export default function InstallPWAButton({
       }
     } else if (isIOS) {
       setIosMode(mode);
+    } else {
+      // Brauzer install qo'llab-quvvatlamasa — sahifaga yo'naltirish
+      const url = OPTIONS.find((o) => o.mode === mode)?.url ?? '/';
+      window.location.href = url;
     }
   };
 
-  const opt = OPTIONS.find((o) => o.mode === iosMode);
+  const iosOpt = OPTIONS.find((o) => o.mode === iosMode);
+
+  const dropdownPos: CSSProperties = dropUp
+    ? { bottom: '100%', top: 'auto', borderRadius: '12px 12px 0 0', borderBottom: 'none', borderTop: '1px solid #2a2d3a' }
+    : { top: '100%', bottom: 'auto', borderRadius: '0 0 12px 12px', borderTop: 'none', borderBottom: '1px solid #2a2d3a' };
 
   return (
-    <div ref={wrapRef} style={{ position: 'relative', width: fullWidth ? '100%' : 'auto', display: 'inline-block', ...style }}>
+    <div
+      ref={wrapRef}
+      style={{ position: 'relative', width: fullWidth ? '100%' : 'auto', display: 'inline-block', ...style }}
+    >
       {/* Asosiy tugma */}
       <button
         onClick={() => { setOpen((v) => !v); setIosMode(null); }}
@@ -111,7 +123,9 @@ export default function InstallPWAButton({
             : 'linear-gradient(135deg, #f5cf5a 0%, #e6b733 100%)',
           color: '#0f1117',
           border: 'none',
-          borderRadius: open ? '10px 10px 0 0' : '10px',
+          borderRadius: open
+            ? (dropUp ? '0 0 10px 10px' : '10px 10px 0 0')
+            : '10px',
           padding: '10px 16px',
           fontSize: '13px',
           fontWeight: 700,
@@ -148,17 +162,15 @@ export default function InstallPWAButton({
         <div
           style={{
             position: 'absolute',
-            top: '100%',
             left: 0,
             right: fullWidth ? 0 : 'auto',
             minWidth: fullWidth ? '100%' : 220,
             background: '#1a1d27',
             border: '1px solid #2a2d3a',
-            borderTop: 'none',
-            borderRadius: '0 0 12px 12px',
             overflow: 'hidden',
             boxShadow: '0 12px 30px rgba(0,0,0,0.5)',
-            zIndex: 200,
+            zIndex: 300,
+            ...dropdownPos,
           }}
         >
           {OPTIONS.map((opt, i) => (
@@ -222,7 +234,7 @@ export default function InstallPWAButton({
           ))}
 
           {/* iOS ko'rsatma */}
-          {iosMode && opt && (
+          {iosMode && iosOpt && (
             <div
               style={{
                 padding: '12px 16px',
@@ -234,10 +246,10 @@ export default function InstallPWAButton({
               }}
             >
               <p style={{ margin: '0 0 4px', fontWeight: 700, color: '#f0c040' }}>
-                {opt.icon} {opt.label} uchun:
+                {iosOpt.icon} {iosOpt.label} uchun:
               </p>
               <p style={{ margin: 0 }}>
-                1. Safari'da <b>{opt.url}</b> sahifasini oching
+                1. Safari&apos;da <b>{iosOpt.url}</b> sahifasini oching
                 <br />
                 2. Pastdagi <b>Ulashish</b> (⤴) tugmasini bosing
                 <br />

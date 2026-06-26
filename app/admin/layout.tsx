@@ -218,7 +218,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <p style={{ margin: 0, fontSize: '11px', color: '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{userLabel}</p>
             </div>
           </div>
-          <InstallPWAButton fullWidth style={{ marginBottom: '10px', fontSize: '12px', padding: '9px' }} />
+          <InstallPWAButton fullWidth dropUp style={{ marginBottom: '10px' }} />
           <button
             onClick={() => signOut({ callbackUrl: '/login' })}
             style={{
