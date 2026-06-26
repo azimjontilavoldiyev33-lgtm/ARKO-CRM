@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import mongoose from 'mongoose';
 import Attendance from '@/models/Attendance';
+import Worker from '@/models/Worker';
+import { getAuth } from '@/lib/auth';
 
 const WORK_START = 9;  // 09:00
 const WORK_END   = 18; // 18:00
@@ -19,7 +21,22 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Parametrlar yetishmayapti' }, { status: 400 });
   }
 
+  // Tizimga kirgan admin bo'lishi shart
+  const auth = await getAuth();
+  if (!auth?.companyId) {
+    return NextResponse.json({ error: 'Avtorizatsiya talab qilinadi' }, { status: 401 });
+  }
+  if (!mongoose.isValidObjectId(workerId)) {
+    return NextResponse.json({ error: "Noto'g'ri workerId" }, { status: 400 });
+  }
+
   await connectDB();
+
+  // IDOR oldini olish — ishchi shu adminning korxonasiga tegishli bo'lishi shart
+  const worker = await Worker.findOne({ _id: workerId, company: auth.companyId }).select('_id');
+  if (!worker) {
+    return NextResponse.json({ error: 'Ishchi topilmadi' }, { status: 404 });
+  }
 
   // Oy boshи va oxiri
   const from = new Date(year, month - 1, 1);
