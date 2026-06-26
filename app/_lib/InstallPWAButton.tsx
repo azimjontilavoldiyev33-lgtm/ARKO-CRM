@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { usePathname } from 'next/navigation';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -35,6 +36,7 @@ export default function InstallPWAButton({
   fullWidth?: boolean;
   dropUp?: boolean;
 }) {
+  const pathname = usePathname();
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [installed, setInstalled] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
@@ -79,7 +81,16 @@ export default function InstallPWAButton({
   // O'rnatilgan bo'lsa ko'rsatmaymiz
   if (installed) return null;
 
+  const currentScope: Mode = pathname.startsWith('/ish') ? 'worker' : 'admin';
+
   const handleOption = async (mode: Mode) => {
+    if (mode !== currentScope) {
+      // Boshqa ilovani o'rnatish uchun o'sha sahifaga o'tish kerak
+      const url = OPTIONS.find((o) => o.mode === mode)?.url ?? '/';
+      window.open(url, '_blank');
+      setOpen(false);
+      return;
+    }
     if (deferred) {
       await deferred.prompt();
       const { outcome } = await deferred.userChoice;
@@ -89,10 +100,6 @@ export default function InstallPWAButton({
       }
     } else if (isIOS) {
       setIosMode(mode);
-    } else {
-      // Brauzer install qo'llab-quvvatlamasa — sahifaga yo'naltirish
-      const url = OPTIONS.find((o) => o.mode === mode)?.url ?? '/';
-      window.location.href = url;
     }
   };
 
@@ -212,24 +219,10 @@ export default function InstallPWAButton({
                 <span style={{ color: '#e8e8e8', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-display)' }}>
                   {opt.label}
                 </span>
-                <span style={{ color: '#666', fontSize: 11 }}>{opt.sub}</span>
+                <span style={{ color: opt.mode === currentScope ? '#4ade80' : '#666', fontSize: 11 }}>
+                  {opt.mode === currentScope ? '⬇ O\'rnatish' : '↗ Sahifaga o\'tish'}
+                </span>
               </span>
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#444"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{ marginLeft: 'auto', flexShrink: 0 }}
-                aria-hidden="true"
-              >
-                <path d="M12 3v12" />
-                <path d="m7 10 5 5 5-5" />
-                <path d="M5 21h14" />
-              </svg>
             </button>
           ))}
 
