@@ -8,7 +8,14 @@ import { notifyAll } from '@/lib/sse';
 // populate('worker'|'order') uchun modellar ro'yxatdan o'tishi shart
 void [Worker, Order];
 
-export async function GET() {
+export async function GET(req: Request) {
+  // CRON_SECRET o'rnatilgan bo'lsa — faqat to'g'ri Bearer token bilan ishlaydi
+  // (Vercel Cron `Authorization: Bearer <CRON_SECRET>` yuboradi).
+  const secret = process.env.CRON_SECRET;
+  if (secret && req.headers.get('authorization') !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     await connectDB();
 
