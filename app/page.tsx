@@ -1,14 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ComponentType, type CSSProperties } from 'react';
+import {
+  LayoutDashboard, Smartphone, Package, Users, Wallet, BarChart3, Workflow,
+  MapPin, ListChecks, Play, CalendarClock, Bell,
+  Download, Check, ArrowRight, Share, X,
+} from 'lucide-react';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
+type IconType = ComponentType<{ size?: number; strokeWidth?: number; color?: string }>;
+
 export default function LandingPage() {
-  const [adminDeferred, setAdminDeferred] = useState<BeforeInstallPromptEvent | null>(null);
+  const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [isIOS, setIsIOS] = useState(false);
   const [iosTarget, setIosTarget] = useState<'admin' | 'worker' | null>(null);
   const [installed, setInstalled] = useState(false);
@@ -27,7 +34,7 @@ export default function LandingPage() {
 
     const onPrompt = (e: Event) => {
       e.preventDefault();
-      setAdminDeferred(e as BeforeInstallPromptEvent);
+      setDeferred(e as BeforeInstallPromptEvent);
     };
     const onInstalled = () => setInstalled(true);
     window.addEventListener('beforeinstallprompt', onPrompt);
@@ -39,94 +46,42 @@ export default function LandingPage() {
   }, []);
 
   const handleInstall = async (target: 'admin' | 'worker') => {
-    if (isIOS) {
-      setIosTarget(target);
-      return;
-    }
-    if (adminDeferred) {
-      await adminDeferred.prompt();
-      const { outcome } = await adminDeferred.userChoice;
-      if (outcome === 'accepted') setAdminDeferred(null);
+    if (isIOS) { setIosTarget(target); return; }
+    if (deferred) {
+      await deferred.prompt();
+      const { outcome } = await deferred.userChoice;
+      if (outcome === 'accepted') setDeferred(null);
     } else {
       window.location.href = target === 'admin' ? '/admin?autoinstall=1' : '/ish?autoinstall=1';
     }
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: '#0b0d13',
-      fontFamily: 'var(--font-sans)',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      padding: '40px 20px 60px',
-      position: 'relative',
-      overflow: 'hidden',
-    }}>
-      {/* Glow effekti */}
-      <div aria-hidden style={{
-        position: 'absolute',
-        top: '-10%',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: 700,
-        height: 500,
-        background: 'radial-gradient(circle, rgba(240,192,64,0.08) 0%, transparent 70%)',
-        pointerEvents: 'none',
-      }} />
+    <div style={S.page}>
+      <div aria-hidden style={S.glow} />
 
-      {/* Header */}
-      <header style={{ textAlign: 'center', marginBottom: 56, position: 'relative', zIndex: 1 }}>
-        <p style={{ color: '#f0c040', fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', margin: '0 0 14px' }}>
-          Davomat + CRM tizimi
-        </p>
-        <h1 style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: 'clamp(36px, 8vw, 64px)',
-          fontWeight: 800,
-          margin: '0 0 16px',
-          background: 'linear-gradient(135deg, #fff 0%, #888 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          lineHeight: 1.1,
-        }}>
-          Tabel
-        </h1>
-        <p style={{ color: '#666', fontSize: 16, margin: 0, maxWidth: 420, lineHeight: 1.6 }}>
+      <header style={S.header}>
+        <p style={S.eyebrow}>Davomat + CRM tizimi</p>
+        <h1 style={S.title}>Tabel</h1>
+        <p style={S.subtitle}>
           Mebel sexlari uchun davomat va ishlab chiqarish boshqaruv tizimi
         </p>
       </header>
 
-      {/* Kartochkalar */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-        gap: 20,
-        width: '100%',
-        maxWidth: 720,
-        position: 'relative',
-        zIndex: 1,
-      }}>
-        {/* Admin kartochkasi */}
+      <div style={S.grid}>
         <Card
-          icon="🖥️"
-          color="#60a5fa"
-          bg="#0d1a2e"
-          border="#1a3050"
+          Icon={LayoutDashboard}
+          accent="var(--color-info)"
           title="Admin paneli"
           subtitle="Boshqaruvchi uchun"
           features={[
-            '📦 Buyurtmalar boshqaruvi',
-            '👷 Ustalar va vazifalar',
-            '💰 Moliya va oylik hisob',
-            '📊 KPI va hisobotlar',
-            '🔗 Ishlab chiqarish zanjiri',
+            { Icon: Package, label: 'Buyurtmalar boshqaruvi' },
+            { Icon: Users, label: 'Ustalar va vazifalar' },
+            { Icon: Wallet, label: 'Moliya va oylik hisob' },
+            { Icon: BarChart3, label: 'KPI va hisobotlar' },
+            { Icon: Workflow, label: 'Ishlab chiqarish zanjiri' },
           ]}
-          btnLabel={installed ? '✓ O\'rnatilgan' : '⬇ Admin ilovasini o\'rnatish'}
-          btnDisabled={installed}
-          btnBg="linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)"
-          btnShadow="rgba(59,130,246,0.3)"
+          installed={installed}
           onInstall={() => handleInstall('admin')}
           iosHint={iosTarget === 'admin'}
           iosUrl="/admin"
@@ -134,25 +89,19 @@ export default function LandingPage() {
           loginUrl="/login"
         />
 
-        {/* Ishchi kartochkasi */}
         <Card
-          icon="📱"
-          color="#4ade80"
-          bg="#0d2218"
-          border="#1a4030"
+          Icon={Smartphone}
+          accent="var(--color-success)"
           title="Ishchi portali"
           subtitle="Ustalar uchun"
           features={[
-            '📍 GPS davomat qaydlash',
-            '✅ Vazifalar ro\'yxati',
-            '▶ Vazifani boshlash/tugatish',
-            '📅 Bugungi ish holati',
-            '🔔 Push bildirishnomalar',
+            { Icon: MapPin, label: 'GPS davomat qaydlash' },
+            { Icon: ListChecks, label: "Vazifalar ro'yxati" },
+            { Icon: Play, label: 'Vazifani boshlash / tugatish' },
+            { Icon: CalendarClock, label: 'Bugungi ish holati' },
+            { Icon: Bell, label: 'Push bildirishnomalar' },
           ]}
-          btnLabel={installed ? '✓ O\'rnatilgan' : '⬇ Ishchi ilovasini o\'rnatish'}
-          btnDisabled={installed}
-          btnBg="linear-gradient(135deg, #22c55e 0%, #16a34a 100%)"
-          btnShadow="rgba(34,197,94,0.3)"
+          installed={installed}
           onInstall={() => handleInstall('worker')}
           iosHint={iosTarget === 'worker'}
           iosUrl="/ish"
@@ -161,127 +110,169 @@ export default function LandingPage() {
         />
       </div>
 
-      <p style={{ color: '#2a2d3a', fontSize: 12, marginTop: 48, position: 'relative', zIndex: 1 }}>
-        Tabel — arko-crm.vercel.app
-      </p>
+      <p style={S.footer}>Tabel — arko-crm.vercel.app</p>
     </div>
   );
 }
 
 function Card({
-  icon, color, bg, border, title, subtitle, features,
-  btnLabel, btnDisabled, btnBg, btnShadow,
-  onInstall, iosHint, iosUrl, onIosClose, loginUrl,
+  Icon, accent, title, subtitle, features,
+  installed, onInstall, iosHint, iosUrl, onIosClose, loginUrl,
 }: {
-  icon: string; color: string; bg: string; border: string;
-  title: string; subtitle: string; features: string[];
-  btnLabel: string; btnDisabled: boolean; btnBg: string; btnShadow: string;
-  onInstall: () => void; iosHint: boolean; iosUrl: string;
-  onIosClose: () => void; loginUrl: string;
+  Icon: IconType; accent: string; title: string; subtitle: string;
+  features: { Icon: IconType; label: string }[];
+  installed: boolean; onInstall: () => void;
+  iosHint: boolean; iosUrl: string; onIosClose: () => void; loginUrl: string;
 }) {
   return (
-    <div style={{
-      background: bg,
-      border: `1px solid ${border}`,
-      borderRadius: 24,
-      padding: '28px 24px',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 20,
-    }}>
-      {/* Sarlavha */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        <span style={{
-          width: 52, height: 52,
-          borderRadius: 16,
-          background: `${color}18`,
-          border: `1px solid ${color}30`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 26,
-          flexShrink: 0,
-        }}>
-          {icon}
+    <div style={{ ...S.card, borderTop: `2px solid ${accent}` }}>
+      <div style={S.cardHead}>
+        <span style={{ ...S.iconBox, background: `color-mix(in srgb, ${accent} 14%, transparent)`, borderColor: `color-mix(in srgb, ${accent} 35%, transparent)` }}>
+          <Icon size={24} strokeWidth={1.8} color={accent} />
         </span>
         <div>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 800, color: '#fff', margin: 0 }}>
-            {title}
-          </h2>
-          <p style={{ color: color, fontSize: 12, margin: '2px 0 0', fontWeight: 600 }}>{subtitle}</p>
+          <h2 style={S.cardTitle}>{title}</h2>
+          <p style={{ ...S.cardSubtitle, color: accent }}>{subtitle}</p>
         </div>
       </div>
 
-      {/* Xususiyatlar */}
-      <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {features.map((f, i) => (
-          <li key={i} style={{ color: '#9aa0ad', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
-            {f}
+      <ul style={S.featureList}>
+        {features.map(({ Icon: FIcon, label }) => (
+          <li key={label} style={S.featureItem}>
+            <FIcon size={16} strokeWidth={1.8} color="var(--color-faint)" />
+            <span>{label}</span>
           </li>
         ))}
       </ul>
 
-      {/* O'rnatish tugmasi */}
       <button
         onClick={onInstall}
-        disabled={btnDisabled}
+        disabled={installed}
+        className="install-btn"
         style={{
-          width: '100%',
-          padding: '14px',
-          background: btnDisabled ? '#1a1d27' : btnBg,
-          border: 'none',
-          borderRadius: 14,
-          color: btnDisabled ? '#555' : '#fff',
-          fontFamily: 'var(--font-display)',
-          fontWeight: 700,
-          fontSize: 14,
-          cursor: btnDisabled ? 'default' : 'pointer',
-          boxShadow: btnDisabled ? 'none' : `0 8px 24px ${btnShadow}`,
-          transition: 'opacity 0.15s, transform 0.1s',
+          ...S.btn,
+          background: installed ? 'var(--color-surface)' : accent,
+          color: installed ? 'var(--color-faint)' : '#0b0d13',
+          cursor: installed ? 'default' : 'pointer',
+          boxShadow: installed ? 'none' : `0 8px 24px color-mix(in srgb, ${accent} 28%, transparent)`,
         }}
-        onMouseEnter={(e) => { if (!btnDisabled) e.currentTarget.style.opacity = '0.9'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
       >
-        {btnLabel}
+        {installed ? <Check size={17} strokeWidth={2.2} /> : <Download size={17} strokeWidth={2.2} />}
+        {installed ? "O'rnatilgan" : "Ilovani o'rnatish"}
       </button>
 
-      {/* iOS ko'rsatma */}
       {iosHint && (
-        <div style={{
-          background: '#14161f',
-          border: '1px solid #2a2d3a',
-          borderRadius: 12,
-          padding: '14px 16px',
-          fontSize: 12,
-          color: '#cfd2dc',
-          lineHeight: 1.8,
-          position: 'relative',
-        }}>
-          <button
-            onClick={onIosClose}
-            style={{ position: 'absolute', top: 10, right: 12, background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 16 }}
-          >✕</button>
-          <p style={{ margin: '0 0 6px', fontWeight: 700, color: '#f0c040' }}>iPhone / iPad uchun:</p>
+        <div style={S.iosBox}>
+          <button onClick={onIosClose} style={S.iosClose} aria-label="Yopish">
+            <X size={16} />
+          </button>
+          <p style={S.iosTitle}>iPhone / iPad uchun:</p>
           <p style={{ margin: 0 }}>
             1. Safari&apos;da <b>{iosUrl}</b> sahifasini oching<br />
-            2. Pastdagi <b>Ulashish ⤴</b> tugmasini bosing<br />
+            2. Pastdagi <b>Ulashish</b> <Share size={12} style={{ verticalAlign: 'middle' }} /> tugmasini bosing<br />
             3. <b>&quot;Bosh ekranga qo&apos;shish&quot;</b> ni tanlang
           </p>
         </div>
       )}
 
-      {/* Kirish havolasi */}
-      <a
-        href={loginUrl}
-        style={{
-          display: 'block',
-          textAlign: 'center',
-          color: '#444',
-          fontSize: 12,
-          textDecoration: 'none',
-          marginTop: -8,
-        }}
-      >
-        Yoki brauzerda ochish →
+      <a href={loginUrl} style={S.loginLink}>
+        Yoki brauzerda ochish <ArrowRight size={13} style={{ verticalAlign: 'middle' }} />
       </a>
     </div>
   );
 }
+
+const S: Record<string, CSSProperties> = {
+  page: {
+    minHeight: '100vh',
+    background: 'var(--color-base)',
+    fontFamily: 'var(--font-sans)',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    padding: '56px 20px 60px',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  glow: {
+    position: 'absolute',
+    top: '-12%',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    width: 760,
+    height: 520,
+    maxWidth: '120vw',
+    background: 'radial-gradient(circle, rgba(240,192,64,0.07) 0%, transparent 70%)',
+    pointerEvents: 'none',
+  },
+  header: { textAlign: 'center', marginBottom: 48, position: 'relative', zIndex: 1 },
+  eyebrow: {
+    color: 'var(--color-accent)', fontSize: 11, letterSpacing: 3,
+    textTransform: 'uppercase', margin: '0 0 14px', fontWeight: 600,
+  },
+  title: {
+    fontFamily: 'var(--font-display)',
+    fontSize: 'clamp(40px, 9vw, 68px)',
+    fontWeight: 800,
+    margin: '0 0 16px',
+    background: 'linear-gradient(135deg, #fff 0%, #8a8d99 100%)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    lineHeight: 1.05,
+  },
+  subtitle: { color: 'var(--color-muted)', fontSize: 16, margin: 0, maxWidth: 440, lineHeight: 1.6 },
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))',
+    gap: 20,
+    width: '100%',
+    maxWidth: 720,
+    position: 'relative',
+    zIndex: 1,
+  },
+  card: {
+    background: 'var(--color-panel)',
+    border: '1px solid var(--color-border-soft)',
+    borderRadius: 22,
+    padding: '26px 24px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 20,
+  },
+  cardHead: { display: 'flex', alignItems: 'center', gap: 14 },
+  iconBox: {
+    width: 52, height: 52, borderRadius: 15,
+    border: '1px solid',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0,
+  },
+  cardTitle: { fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 800, color: 'var(--color-text)', margin: 0 },
+  cardSubtitle: { fontSize: 12, margin: '3px 0 0', fontWeight: 600 },
+  featureList: { listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 11 },
+  featureItem: { color: 'var(--color-muted)', fontSize: 13.5, display: 'flex', alignItems: 'center', gap: 10 },
+  btn: {
+    width: '100%',
+    padding: '14px',
+    border: 'none',
+    borderRadius: 13,
+    fontFamily: 'var(--font-display)',
+    fontWeight: 700,
+    fontSize: 14,
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+    transition: 'transform 0.12s ease, opacity 0.15s ease',
+  },
+  iosBox: {
+    background: 'var(--color-bg)',
+    border: '1px solid var(--color-border)',
+    borderRadius: 12,
+    padding: '14px 16px',
+    fontSize: 12,
+    color: '#cfd2dc',
+    lineHeight: 1.9,
+    position: 'relative',
+  },
+  iosClose: { position: 'absolute', top: 10, right: 12, background: 'none', border: 'none', color: 'var(--color-faint)', cursor: 'pointer', display: 'flex', padding: 0 },
+  iosTitle: { margin: '0 0 6px', fontWeight: 700, color: 'var(--color-accent)' },
+  loginLink: { display: 'block', textAlign: 'center', color: 'var(--color-faint)', fontSize: 12, textDecoration: 'none', marginTop: -6 },
+  footer: { color: '#2a2d3a', fontSize: 12, marginTop: 48, position: 'relative', zIndex: 1 },
+};

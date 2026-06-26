@@ -73,3 +73,12 @@ body {
 *::-webkit-scrollbar-thumb:hover {
   background: #3a3d4a;
 }
+
+/* ─── Landing page o'rnatish tugmasi ──────────────────────────── */
+.install-btn:not(:disabled):hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+.install-btn:not(:disabled):active {
+  transform: translateY(0);
+}
