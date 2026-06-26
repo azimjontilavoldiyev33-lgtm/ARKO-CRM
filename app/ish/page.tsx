@@ -1,11 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { apiFetch, clearSession, getPosition, getToken, getWorker, type WorkerInfo } from './_lib/store';
 import InstallPWAButton from '../_lib/InstallPWAButton';
 import NotificationButton from './_lib/NotificationButton';
+import AutoInstall from '../_lib/AutoInstall';
 
 type AttEvent = {
   _id: string;
@@ -24,14 +25,8 @@ type WorkTask = {
 
 type Toast = { kind: 'ok' | 'err'; text: string } | null;
 
-interface DeferredPrompt extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
-}
-
 export default function IshHome() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [worker, setWorker] = useState<WorkerInfo | null>(null);
   const [events, setEvents] = useState<AttEvent[]>([]);
   const [busy, setBusy] = useState<null | 'in' | 'out'>(null);
@@ -75,17 +70,6 @@ export default function IshHome() {
       setLoadingTasks(false);
     }
   }, [router]);
-
-  // ?autoinstall=1 bo'lsa — beforeinstallprompt kelganda avtomatik chiqarish
-  useEffect(() => {
-    if (searchParams.get('autoinstall') !== '1') return;
-    const handler = (e: Event) => {
-      e.preventDefault();
-      (e as DeferredPrompt).prompt();
-    };
-    window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, [searchParams]);
 
   useEffect(() => {
     if (!getToken()) {
@@ -170,6 +154,7 @@ export default function IshHome() {
 
   return (
     <div style={S.wrap}>
+      <Suspense fallback={null}><AutoInstall /></Suspense>
 <div aria-hidden style={S.glow} />
 
       <div style={S.inner}>

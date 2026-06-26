@@ -5,6 +5,7 @@ import type { MetadataRoute } from 'next';
 // shortcut'lar berilgan: Boshqaruv (admin) va Davomat (ishchi).
 export default function manifest(): MetadataRoute.Manifest {
   return {
+    id: '/',
     name: 'Tabel — Davomat va CRM',
     short_name: 'Tabel',
     description: 'Mebel sexlari uchun davomat va CRM tizimi',
