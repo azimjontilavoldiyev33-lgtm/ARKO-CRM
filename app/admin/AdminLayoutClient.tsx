@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import InstallPWAButton from '../_lib/InstallPWAButton';
@@ -21,11 +21,28 @@ const navItems: { href: string; label: string; icon: string; pro?: boolean }[] =
   { href: '/admin/office-location', label: 'Ofis hududi', icon: '📍' },
 ];
 
+interface DeferredPrompt extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
 export default function AdminLayoutClient({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
   const [me, setMe] = useState<{ username: string; companyName: string; role: string; plan?: string } | null>(null);
   const sidebarRef = useRef<HTMLElement>(null);
+
+  // ?autoinstall=1 bo'lsa — beforeinstallprompt kelganda avtomatik chiqarish
+  useEffect(() => {
+    if (searchParams.get('autoinstall') !== '1') return;
+    const handler = (e: Event) => {
+      e.preventDefault();
+      (e as DeferredPrompt).prompt();
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, [searchParams]);
 
   // Close sidebar on route change (mobile)
   useEffect(() => { setOpen(false); }, [pathname]);
