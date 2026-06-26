@@ -169,7 +169,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
 
         {/* Nav */}
-        <nav style={{ padding: '16px 12px', flex: 1 }}>
+        <nav style={{ padding: '16px 12px', flex: 1, overflowY: 'auto' }}>
           {visibleNav.map((item) => {
             const isActive =
               item.href === '/admin' ? pathname === '/admin' : pathname.startsWith(item.href);
