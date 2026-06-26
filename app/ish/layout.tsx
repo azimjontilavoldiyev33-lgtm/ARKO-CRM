@@ -3,7 +3,7 @@ import type { Metadata, Viewport } from 'next';
 export const metadata: Metadata = {
   title: 'Tabel — Davomat',
   description: 'Ishchilar uchun Keldi/Ketdi davomat ilovasi',
-  manifest: '/manifest.webmanifest',
+  manifest: '/ish/manifest.webmanifest',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
