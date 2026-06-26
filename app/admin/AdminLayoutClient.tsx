@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import InstallPWAButton from '../_lib/InstallPWAButton';
@@ -28,21 +28,20 @@ interface DeferredPrompt extends Event {
 
 export default function AdminLayoutClient({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
   const [me, setMe] = useState<{ username: string; companyName: string; role: string; plan?: string } | null>(null);
   const sidebarRef = useRef<HTMLElement>(null);
 
   // ?autoinstall=1 bo'lsa — beforeinstallprompt kelganda avtomatik chiqarish
   useEffect(() => {
-    if (searchParams.get('autoinstall') !== '1') return;
+    if (new URLSearchParams(window.location.search).get('autoinstall') !== '1') return;
     const handler = (e: Event) => {
       e.preventDefault();
       (e as DeferredPrompt).prompt();
     };
     window.addEventListener('beforeinstallprompt', handler);
     return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, [searchParams]);
+  }, []);
 
   // Close sidebar on route change (mobile)
   useEffect(() => { setOpen(false); }, [pathname]);

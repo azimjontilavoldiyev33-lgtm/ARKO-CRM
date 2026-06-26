@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { apiFetch, clearSession, getPosition, getToken, getWorker, type WorkerInfo } from './_lib/store';
 import InstallPWAButton from '../_lib/InstallPWAButton';
@@ -31,7 +31,6 @@ interface DeferredPrompt extends Event {
 
 export default function IshHome() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [worker, setWorker] = useState<WorkerInfo | null>(null);
   const [events, setEvents] = useState<AttEvent[]>([]);
   const [busy, setBusy] = useState<null | 'in' | 'out'>(null);
@@ -78,14 +77,14 @@ export default function IshHome() {
 
   // ?autoinstall=1 bo'lsa — beforeinstallprompt kelganda avtomatik chiqarish
   useEffect(() => {
-    if (searchParams.get('autoinstall') !== '1') return;
+    if (new URLSearchParams(window.location.search).get('autoinstall') !== '1') return;
     const handler = (e: Event) => {
       e.preventDefault();
       (e as DeferredPrompt).prompt();
     };
     window.addEventListener('beforeinstallprompt', handler);
     return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, [searchParams]);
+  }, []);
 
   useEffect(() => {
     if (!getToken()) {
