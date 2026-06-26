@@ -1,6 +1,6 @@
 // Tabel PWA service worker — butun loyiha (admin CRM + ishchi davomat)
 // app-shell offline + installability.
-const CACHE = 'tabel-v3';
+const CACHE = 'tabel-v4';
 const OFFLINE_URL = '/offline';
 const SHELL = [
   '/',
@@ -13,6 +13,8 @@ const SHELL = [
   '/icon-512.png',
   '/apple-icon.png',
   '/manifest.webmanifest',
+  '/admin/manifest.webmanifest',
+  '/ish/manifest.webmanifest',
 ];
 
 self.addEventListener('install', (event) => {
