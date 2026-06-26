@@ -27,6 +27,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [me, setMe] = useState<{ username: string; companyName: string; role: string; plan?: string } | null>(null);
   const sidebarRef = useRef<HTMLElement>(null);
 
+  // Admin uchun alohida PWA manifesti
+  useEffect(() => {
+    let link = document.querySelector('link[rel="manifest"]') as HTMLLinkElement | null;
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'manifest';
+      document.head.appendChild(link);
+    }
+    link.href = '/admin/manifest.webmanifest';
+  }, []);
+
   // Close sidebar on route change (mobile)
   useEffect(() => { setOpen(false); }, [pathname]);
 
