@@ -29,5 +29,8 @@ const OrderSchema = new Schema<IOrder>({
   company: { type: Schema.Types.ObjectId, ref: 'Company' },
 });
 
+// Buyurtmalar ro'yxati: korxona bo'yicha filtr + createdAt tartibi
+OrderSchema.index({ company: 1, createdAt: -1 });
+
 const Order = mongoose.models.Order || mongoose.model<IOrder>('Order', OrderSchema);
 export default Order;
