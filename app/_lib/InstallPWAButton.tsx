@@ -1,50 +1,63 @@
 'use client';
 
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { usePathname } from 'next/navigation';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
-// "Ilovani o'rnatish" tugmasi. beforeinstallprompt'ni ushlab turadi va
-// bosilganda brauzerning native o'rnatish oynasini chiqaradi.
-// iOS Safari'da bu API yo'q — shuning uchun qo'lda qo'shish qo'llanmasi ko'rsatiladi.
+type Mode = 'admin' | 'worker';
+
+const OPTIONS: { mode: Mode; icon: string; label: string; sub: string; url: string }[] = [
+  {
+    mode: 'admin',
+    icon: '🖥️',
+    label: 'Admin uchun',
+    sub: 'Boshqaruv paneli',
+    url: '/admin',
+  },
+  {
+    mode: 'worker',
+    icon: '📱',
+    label: 'Ishchi uchun',
+    sub: 'Davomat va vazifalar',
+    url: '/ish',
+  },
+];
+
 export default function InstallPWAButton({
   style,
   fullWidth = false,
+  dropUp = false,
 }: {
   style?: CSSProperties;
   fullWidth?: boolean;
+  dropUp?: boolean;
 }) {
+  const pathname = usePathname();
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [installed, setInstalled] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
-  const [iosHint, setIosHint] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [iosMode, setIosMode] = useState<Mode | null>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Allaqachon o'rnatilgan (standalone rejimda ochilgan) — tugma kerak emas
     const standalone =
       window.matchMedia('(display-mode: standalone)').matches ||
       (window.navigator as unknown as { standalone?: boolean }).standalone === true;
-    if (standalone) {
-      setInstalled(true);
-      return;
-    }
+    if (standalone) { setInstalled(true); return; }
 
     const ua = window.navigator.userAgent.toLowerCase();
-    // iPad iOS 13+ "Macintosh" deb ko'rsatadi — touch bilan aniqlaymiz
-    const iOS = /iphone|ipad|ipod/.test(ua) || (/macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+    const iOS =
+      /iphone|ipad|ipod/.test(ua) ||
+      (/macintosh/.test(ua) && navigator.maxTouchPoints > 1);
     setIsIOS(iOS);
 
-    const onPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferred(e as BeforeInstallPromptEvent);
-    };
-    const onInstalled = () => {
-      setInstalled(true);
-      setDeferred(null);
-    };
+    const onPrompt = (e: Event) => { e.preventDefault(); setDeferred(e as BeforeInstallPromptEvent); };
+    const onInstalled = () => { setInstalled(true); setDeferred(null); };
     window.addEventListener('beforeinstallprompt', onPrompt);
     window.addEventListener('appinstalled', onInstalled);
     return () => {
@@ -53,24 +66,58 @@ export default function InstallPWAButton({
     };
   }, []);
 
-  // O'rnatilgan bo'lsa yoki o'rnatish imkoniyati yo'q bo'lsa — hech narsa chiqarmaymiz
-  if (installed) return null;
-  if (!deferred && !isIOS) return null;
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setIosMode(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
 
-  const handleClick = async () => {
+  // O'rnatilgan bo'lsa ko'rsatmaymiz
+  if (installed) return null;
+
+  const currentScope: Mode = pathname.startsWith('/ish') ? 'worker' : 'admin';
+
+  const handleOption = async (mode: Mode) => {
+    if (mode !== currentScope) {
+      // Boshqa ilovani o'rnatish uchun o'sha sahifaga o'tish kerak
+      const url = OPTIONS.find((o) => o.mode === mode)?.url ?? '/';
+      window.open(url, '_blank');
+      setOpen(false);
+      return;
+    }
     if (deferred) {
       await deferred.prompt();
       const { outcome } = await deferred.userChoice;
-      if (outcome === 'accepted') setDeferred(null);
+      if (outcome === 'accepted') {
+        setDeferred(null);
+        setOpen(false);
+      }
     } else if (isIOS) {
-      setIosHint((v) => !v);
+      setIosMode(mode);
     }
   };
 
+  const iosOpt = OPTIONS.find((o) => o.mode === iosMode);
+
+  const dropdownPos: CSSProperties = dropUp
+    ? { bottom: '100%', top: 'auto', borderRadius: '12px 12px 0 0', borderBottom: 'none', borderTop: '1px solid #2a2d3a' }
+    : { top: '100%', bottom: 'auto', borderRadius: '0 0 12px 12px', borderTop: 'none', borderBottom: '1px solid #2a2d3a' };
+
   return (
-    <div style={{ position: 'relative', width: fullWidth ? '100%' : 'auto' }}>
+    <div
+      ref={wrapRef}
+      style={{ position: 'relative', width: fullWidth ? '100%' : 'auto', display: 'inline-block', ...style }}
+    >
+      {/* Asosiy tugma */}
       <button
-        onClick={handleClick}
+        onClick={() => { setOpen((v) => !v); setIosMode(null); }}
+        aria-expanded={open}
         aria-label="Ilovani o'rnatish"
         style={{
           width: fullWidth ? '100%' : 'auto',
@@ -78,17 +125,21 @@ export default function InstallPWAButton({
           alignItems: 'center',
           justifyContent: 'center',
           gap: '8px',
-          background: 'linear-gradient(135deg, #f5cf5a 0%, #e6b733 100%)',
+          background: open
+            ? 'linear-gradient(135deg, #e6b733 0%, #d4a520 100%)'
+            : 'linear-gradient(135deg, #f5cf5a 0%, #e6b733 100%)',
           color: '#0f1117',
           border: 'none',
-          borderRadius: '10px',
+          borderRadius: open
+            ? (dropUp ? '0 0 10px 10px' : '10px 10px 0 0')
+            : '10px',
           padding: '10px 16px',
           fontSize: '13px',
           fontWeight: 700,
           fontFamily: 'var(--font-display)',
           cursor: 'pointer',
           boxShadow: '0 4px 14px rgba(240,192,64,0.25)',
-          ...style,
+          transition: 'border-radius 0.15s',
         }}
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -97,29 +148,108 @@ export default function InstallPWAButton({
           <path d="M5 21h14" />
         </svg>
         Ilovani o&apos;rnatish
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+          style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
+        >
+          <path d="m6 9 6 6 6-6" />
+        </svg>
       </button>
 
-      {iosHint && (
+      {/* Dropdown */}
+      {open && (
         <div
           style={{
             position: 'absolute',
-            bottom: 'calc(100% + 8px)',
             left: 0,
-            right: 0,
+            right: fullWidth ? 0 : 'auto',
+            minWidth: fullWidth ? '100%' : 220,
             background: '#1a1d27',
             border: '1px solid #2a2d3a',
-            borderRadius: '12px',
-            padding: '12px 14px',
-            fontSize: '12px',
-            color: '#cfd2dc',
-            lineHeight: 1.6,
+            overflow: 'hidden',
             boxShadow: '0 12px 30px rgba(0,0,0,0.5)',
-            zIndex: 100,
-            fontFamily: 'var(--font-sans)',
+            zIndex: 300,
+            ...dropdownPos,
           }}
         >
-          iPhone&apos;da o&apos;rnatish: pastdagi <b>Ulashish</b> (⤴) tugmasini bosing →{' '}
-          <b>&quot;Bosh ekranga qo&apos;shish&quot;</b> ni tanlang.
+          {OPTIONS.map((opt, i) => (
+            <button
+              key={opt.mode}
+              onClick={() => handleOption(opt.mode)}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: '13px 16px',
+                background: 'transparent',
+                border: 'none',
+                borderTop: i === 0 ? 'none' : '1px solid #23263a',
+                cursor: 'pointer',
+                textAlign: 'left',
+                transition: 'background 0.15s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = '#22253a')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+            >
+              <span
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 10,
+                  background: opt.mode === 'admin' ? '#15233a' : '#1a2a1a',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 18,
+                  flexShrink: 0,
+                }}
+              >
+                {opt.icon}
+              </span>
+              <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <span style={{ color: '#e8e8e8', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-display)' }}>
+                  {opt.label}
+                </span>
+                <span style={{ color: opt.mode === currentScope ? '#4ade80' : '#666', fontSize: 11 }}>
+                  {opt.mode === currentScope ? '⬇ O\'rnatish' : '↗ Sahifaga o\'tish'}
+                </span>
+              </span>
+            </button>
+          ))}
+
+          {/* iOS ko'rsatma */}
+          {iosMode && iosOpt && (
+            <div
+              style={{
+                padding: '12px 16px',
+                borderTop: '1px solid #23263a',
+                background: '#14161f',
+                fontSize: 12,
+                color: '#cfd2dc',
+                lineHeight: 1.7,
+              }}
+            >
+              <p style={{ margin: '0 0 4px', fontWeight: 700, color: '#f0c040' }}>
+                {iosOpt.icon} {iosOpt.label} uchun:
+              </p>
+              <p style={{ margin: 0 }}>
+                1. Safari&apos;da <b>{iosOpt.url}</b> sahifasini oching
+                <br />
+                2. Pastdagi <b>Ulashish</b> (⤴) tugmasini bosing
+                <br />
+                3. <b>&quot;Bosh ekranga qo&apos;shish&quot;</b> ni tanlang
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>

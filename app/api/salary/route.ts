@@ -30,7 +30,7 @@ export async function GET(req: Request) {
 
   await connectDB();
 
-  // Ishchi shu adminning korxonasiga tegishli bo'lishi shart (cross-tenant himoyasi)
+  // Ishchi shu adminning korxonasiga tegishli bo'lishi shart (cross-tenant/IDOR himoyasi)
   const worker = await Worker.findOne({ _id: workerId, company: auth.companyId }).select('_id');
   if (!worker) return NextResponse.json({ error: 'Ishchi topilmadi' }, { status: 404 });
 

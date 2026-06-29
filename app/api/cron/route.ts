@@ -10,7 +10,7 @@ import { reportError } from '@/lib/reportError';
 void [Worker, Order];
 
 export async function GET(req: Request) {
-  // Faqat sozlangan cron chaqiruvchisi kira oladi.
+  // Faqat sozlangan cron chaqiruvchisi kira oladi (fail-closed: secret yo'q bo'lsa ham bloklaymiz).
   // Vercel Cron "Authorization: Bearer <CRON_SECRET>" header yuboradi.
   const secret = process.env.CRON_SECRET;
   if (!secret) {

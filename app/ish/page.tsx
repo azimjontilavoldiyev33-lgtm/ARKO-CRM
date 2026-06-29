@@ -1,11 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { apiFetch, clearSession, getPosition, getToken, getWorker, type WorkerInfo } from './_lib/store';
 import InstallPWAButton from '../_lib/InstallPWAButton';
 import NotificationButton from './_lib/NotificationButton';
+import AutoInstall from '../_lib/AutoInstall';
 
 type AttEvent = {
   _id: string;
@@ -193,6 +194,7 @@ export default function IshHome() {
 
   return (
     <div style={S.wrap}>
+      <Suspense fallback={null}><AutoInstall /></Suspense>
 <div aria-hidden style={S.glow} />
 
       <div style={S.inner}>

@@ -1,13 +1,5 @@
 import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.MONGODB_URI || '';
-
-if (!MONGODB_URI) {
-  throw new Error(
-    'Iltimos, .env faylida MONGODB_URI ni belgilang'
-  );
-}
-
 interface MongooseCache {
   conn: typeof mongoose | null;
   promise: Promise<typeof mongoose> | null;
@@ -21,11 +13,16 @@ const cached: MongooseCache = global.mongoose ?? { conn: null, promise: null };
 global.mongoose = cached;
 
 export const connectDB = async (): Promise<typeof mongoose> => {
+  const MONGODB_URI = process.env.MONGODB_URI || '';
+  if (!MONGODB_URI) {
+    throw new Error('Iltimos, .env faylida MONGODB_URI ni belgilang');
+  }
+
   if (cached.conn) return cached.conn;
 
   if (!cached.promise) {
     cached.promise = mongoose
-      .connect(MONGODB_URI, {
+      .connect(MONGODB_URI!, {
         bufferCommands: false,
         serverSelectionTimeoutMS: 5000,
         socketTimeoutMS: 45000,
