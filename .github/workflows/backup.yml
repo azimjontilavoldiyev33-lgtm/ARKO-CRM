@@ -1,0 +1,38 @@
+name: DB Backup
+
+# Har kuni 02:00 UTC (Toshkent 07:00) da MongoDB'ni mongodump bilan zaxiralaydi.
+# Arxiv GitHub artifact sifatida 30 kun saqlanadi (Atlas backup'ga qo'shimcha himoya).
+#
+# Sozlash: GitHub repo → Settings → Secrets → MONGODB_URI qo'shing.
+# Qo'lda ishga tushirish: Actions → DB Backup → Run workflow.
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install MongoDB Database Tools
+        run: |
+          wget -qO- https://www.mongodb.org/static/pgp/server-7.0.asc | sudo tee /etc/apt/trusted.gpg.d/mongodb.asc >/dev/null
+          echo "deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+          sudo apt-get update && sudo apt-get install -y mongodb-database-tools
+
+      - name: Dump database
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+        run: |
+          if [ -z "$MONGODB_URI" ]; then echo "MONGODB_URI secret sozlanmagan"; exit 1; fi
+          STAMP=$(date +%Y-%m-%d_%H-%M)
+          mongodump --uri="$MONGODB_URI" --gzip --archive="backup_${STAMP}.gz"
+          echo "STAMP=$STAMP" >> "$GITHUB_ENV"
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ env.STAMP }}
+          path: backup_*.gz
+          retention-days: 30

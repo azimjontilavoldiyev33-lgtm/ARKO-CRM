@@ -298,7 +298,11 @@ function PhotoModal({ task, onClose }: { task: Task; onClose: () => void }) {
         </div>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={`/api/telegram/photo?file=${encodeURIComponent(task.completionPhoto || '')}`}
+          src={
+            task.completionPhoto?.startsWith('http')
+              ? task.completionPhoto // Cloudinary (telefondan yuklangan)
+              : `/api/telegram/photo?file=${encodeURIComponent(task.completionPhoto || '')}` // Telegram fayl
+          }
           alt="Ish rasmi"
           className="w-full rounded-xl object-cover"
         />

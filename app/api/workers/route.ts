@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Worker from '@/models/Worker';
 import { getAuth } from '@/lib/auth';
+import { workerCreateSchema, parseBody } from '@/lib/validation';
 
 // 4 xonali unique kod generatsiya
 async function generateCode(): Promise<string> {
@@ -33,11 +34,12 @@ export async function POST(req: Request) {
   const auth = await getAuth();
   if (!auth?.companyId) return NextResponse.json({ error: 'Avtorizatsiya talab qilinadi' }, { status: 401 });
   await connectDB();
-  const body = await req.json();
+  const parsed = parseBody(workerCreateSchema, await req.json().catch(() => null));
+  if (!parsed.ok) return parsed.response;
   try {
-    // Kirish kodi HAR DOIM avtomatik (random + unikal). body.code bo'lsa ham e'tiborsiz.
+    // Kirish kodi/company/deviceId — serverda boshqariladi (mijoz o'rnata olmaydi).
     const code = await generateCode();
-    const worker = await Worker.create({ ...body, code, company: auth.companyId });
+    const worker = await Worker.create({ ...parsed.data, code, company: auth.companyId });
     return NextResponse.json(worker, { status: 201 });
   } catch (err) {
     if (err && typeof err === 'object' && 'code' in err && err.code === 11000) {

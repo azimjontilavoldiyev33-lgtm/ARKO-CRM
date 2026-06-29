@@ -5,6 +5,7 @@ export interface ICompany extends Document {
   plan: 'basic' | 'pro';
   isActive: boolean;
   pointValue: number;   // 1 ball necha so'm (KPI ball -> oylik); 0 = o'chiq
+  telegramChatId?: string;   // ogohlantirishlar boradigan Telegram chat ID
   createdAt: Date;
 }
 
@@ -13,6 +14,7 @@ const CompanySchema = new Schema<ICompany>({
   plan: { type: String, enum: ['basic', 'pro'], default: 'pro' },
   isActive: { type: Boolean, default: true },
   pointValue: { type: Number, default: 0 },
+  telegramChatId: { type: String, default: null },
   createdAt: { type: Date, default: Date.now },
 });
 

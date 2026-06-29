@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import OfficeLocation from '@/models/OfficeLocation';
 import { getAuth } from '@/lib/auth';
+import { officeLocationSchema, parseBody } from '@/lib/validation';
 
 // GET - ishxona hududi olish (admin o'z korxonasiniki)
 export async function GET() {
@@ -22,11 +23,9 @@ export async function POST(req: NextRequest) {
     const auth = await getAuth();
     if (!auth?.companyId) return NextResponse.json({ success: false, message: 'Avtorizatsiya talab qilinadi' }, { status: 401 });
     await connectDB();
-    const { name, lat, lng, radius } = await req.json();
-
-    if (!name || !lat || !lng) {
-      return NextResponse.json({ success: false, message: "name, lat, lng majburiy" }, { status: 400 });
-    }
+    const parsed = parseBody(officeLocationSchema, await req.json().catch(() => null));
+    if (!parsed.ok) return parsed.response;
+    const { name, lat, lng, radius } = parsed.data;
 
     // Korxonaga tegishli ofisni yangilash/yaratish
     const company = auth.companyId;

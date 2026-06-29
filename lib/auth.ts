@@ -22,12 +22,13 @@ export const authOptions: NextAuthOptions = {
 
         let admin = await Admin.findOne({ username });
 
-        // Bootstrap: birinchi marta — .env dagi admin'ni superadmin sifatida yaratamiz
+        // Bootstrap: birinchi marta — .env dagi admin'ni superadmin sifatida yaratamiz.
+        // Zaif default YO'Q — ADMIN_USERNAME/ADMIN_PASSWORD aniq sozlangan bo'lishi shart.
         if (!admin) {
-          const envUser = process.env.ADMIN_USERNAME || 'admin';
-          const envPass = process.env.ADMIN_PASSWORD || 'admin123';
+          const envUser = process.env.ADMIN_USERNAME;
+          const envPass = process.env.ADMIN_PASSWORD;
           const anyAdmin = await Admin.findOne();
-          if (!anyAdmin && username === envUser && credentials.password === envPass) {
+          if (envUser && envPass && !anyAdmin && username === envUser && credentials.password === envPass) {
             const company = await getDefaultCompanyId();
             admin = await Admin.create({
               username: envUser,

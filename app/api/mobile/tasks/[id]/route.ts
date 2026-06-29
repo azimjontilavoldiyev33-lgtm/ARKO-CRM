@@ -18,7 +18,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const { id } = await params;
   await connectDB();
-  const { action } = await req.json();
+  const { action, completionPhoto } = await req.json();
 
   // Faqat O'Z vazifasini o'zgartira oladi
   const task = await Task.findOne({ _id: id, worker: workerId });
@@ -32,6 +32,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   } else if (action === 'complete') {
     task.status = 'completed';
     task.completedAt = new Date();
+    if (completionPhoto) task.completionPhoto = completionPhoto; // ish isboti rasmi
   } else {
     return NextResponse.json({ success: false, message: "Noto'g'ri amal" }, { status: 400 });
   }

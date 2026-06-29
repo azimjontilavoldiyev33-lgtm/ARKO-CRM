@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { apiFetch, clearSession, getPosition, getToken, getWorker, type WorkerInfo } from './_lib/store';
@@ -34,6 +34,8 @@ export default function IshHome() {
   const [tasks, setTasks] = useState<WorkTask[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(true);
   const [taskBusy, setTaskBusy] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const pendingTaskRef = useRef<string | null>(null);
 
   const loadReport = useCallback(async () => {
     setLoadingReport(true);
@@ -85,12 +87,50 @@ export default function IshHome() {
     return () => es.close();
   }, [router, loadReport, loadTasks]);
 
-  const handleTask = async (taskId: string, action: 'start' | 'complete') => {
+  // "Tugatish" bosilganda — kamera ochiladi (ish isboti rasmi majburiy)
+  const onTaskButton = (task: WorkTask) => {
+    if (task.status === 'in_progress') {
+      pendingTaskRef.current = task._id;
+      fileInputRef.current?.click();
+    } else {
+      handleTask(task._id, 'start');
+    }
+  };
+
+  // Rasm tanlangach — Cloudinary'ga yuklab, vazifani rasm bilan tugatadi
+  const onPhotoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    const taskId = pendingTaskRef.current;
+    pendingTaskRef.current = null;
+    if (!file || !taskId) return;
+
+    setTaskBusy(taskId);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      // FormData uchun Content-Type'ni brauzer o'zi qo'yadi — faqat tokenni qo'shamiz
+      const token = getToken();
+      const up = await fetch('/api/upload', {
+        method: 'POST',
+        body: fd,
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      const upData = await up.json();
+      if (!upData?.url) throw new Error('upload');
+      await handleTask(taskId, 'complete', upData.url);
+    } catch {
+      showToast({ kind: 'err', text: 'Rasm yuklanmadi, qayta urinib ko\'ring' });
+      setTaskBusy(null);
+    }
+  };
+
+  const handleTask = async (taskId: string, action: 'start' | 'complete', completionPhoto?: string) => {
     setTaskBusy(taskId);
     try {
       const res = await apiFetch(`/api/mobile/tasks/${taskId}`, {
         method: 'PATCH',
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action, completionPhoto }),
       });
       const data = await res.json();
       if (data?.success) {
@@ -210,6 +250,16 @@ export default function IshHome() {
           </button>
         </div>
 
+        {/* Yashirin kamera input — ish isboti rasmi uchun */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={onPhotoSelected}
+          style={{ display: 'none' }}
+        />
+
         {/* Vazifalar */}
         <section style={{ marginTop: 28 }}>
           <h2 style={S.sectionTitle}>
@@ -241,12 +291,12 @@ export default function IshHome() {
                     {t.description && <p style={{ margin: '6px 0 0', color: '#9aa0ad', fontSize: 13, lineHeight: 1.5 }}>{t.description}</p>}
 
                     <button
-                      onClick={() => handleTask(t._id, inProg ? 'complete' : 'start')}
+                      onClick={() => onTaskButton(t)}
                       disabled={taskBusy === t._id}
                       className="task-btn"
                       style={{ ...S.taskBtn, ...(inProg ? S.taskBtnDone : S.taskBtnStart), opacity: taskBusy === t._id ? 0.6 : 1 }}
                     >
-                      {taskBusy === t._id ? '...' : inProg ? '✓ Tugatish' : '▶ Boshlash'}
+                      {taskBusy === t._id ? 'Yuklanmoqda...' : inProg ? '📷 Rasm bilan tugatish' : '▶ Boshlash'}
                     </button>
                   </div>
                 );

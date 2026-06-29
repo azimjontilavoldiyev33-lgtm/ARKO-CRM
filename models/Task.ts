@@ -42,5 +42,10 @@ stepIndex:  { type: Number },
   company: { type: Schema.Types.ObjectId, ref: 'Company' },
 });
 
+// So'rov naqshlari uchun indekslar:
+TaskSchema.index({ company: 1, createdAt: -1 });   // admin ro'yxati
+TaskSchema.index({ worker: 1, status: 1 });        // ishchi vazifalari (mobil/kiosk/oylik)
+TaskSchema.index({ deadline: 1, status: 1 });      // cron — kechikkan vazifalar
+
 const Task = mongoose.models.Task || mongoose.model<ITask>('Task', TaskSchema);
 export default Task;

@@ -55,6 +55,10 @@ const WorkerSchema = new Schema<IWorker>({
   company: { type: Schema.Types.ObjectId, ref: 'Company' },
 });
 
+// Admin ro'yxati: korxona bo'yicha filtr + createdAt bo'yicha tartib (collection scan oldini oladi)
+WorkerSchema.index({ company: 1, createdAt: -1 });
+// phoneNumber va code maydonlarida allaqachon unique indeks bor (login qidiruvi uchun)
+
 const Worker = mongoose.models.Worker || mongoose.model<IWorker>('Worker', WorkerSchema);
 
 export default Worker;

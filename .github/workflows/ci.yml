@@ -1,0 +1,26 @@
+name: CI
+
+# Har push va PR'da typecheck + lint + build tekshiradi (buzilgan kod merge bo'lmasin).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      # Build paytida lib/mongodb.ts va lib/mobileAuth.ts env talab qiladi — dummy qiymatlar
+      MONGODB_URI: mongodb://localhost:27017/ci
+      NEXTAUTH_SECRET: ci-dummy-secret-not-used-at-runtime
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run lint
+      - run: npm run build

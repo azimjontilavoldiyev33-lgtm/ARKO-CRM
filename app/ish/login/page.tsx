@@ -7,6 +7,7 @@ import { saveSession, getToken, getDeviceId } from '../_lib/store';
 export default function IshLoginPage() {
   const router = useRouter();
   const [phone, setPhone] = useState('');
+  const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -17,14 +18,16 @@ export default function IshLoginPage() {
 
   const handleSubmit = async () => {
     const value = phone.trim();
+    const codeValue = code.trim();
     if (!value) return;
+    if (!/^\d{4}$/.test(codeValue)) { setError('4 xonali kodni kiriting'); return; }
     setLoading(true);
     setError('');
     try {
       const res = await fetch('/api/mobile/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber: value, deviceId: getDeviceId() }),
+        body: JSON.stringify({ phoneNumber: value, code: codeValue, deviceId: getDeviceId() }),
       });
       const data = await res.json();
       if (data?.success && data.token) {
@@ -56,14 +59,31 @@ export default function IshLoginPage() {
 
           {error && <div style={S.error}>❌ {error}</div>}
 
-          <label style={S.label}>Telefon raqamingiz</label>
+          <label style={S.label} htmlFor="ish-phone">Telefon raqamingiz</label>
           <input
+            id="ish-phone"
             type="tel"
             inputMode="tel"
+            autoComplete="tel"
             placeholder="+998 90 123 45 67"
             className="tabel-input"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+            style={S.input}
+          />
+
+          <label style={S.label} htmlFor="ish-code">Kirish kodi</label>
+          <input
+            id="ish-code"
+            type="text"
+            inputMode="numeric"
+            maxLength={4}
+            autoComplete="one-time-code"
+            placeholder="4 xonali kod"
+            className="tabel-input"
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
             style={S.input}
           />

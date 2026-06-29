@@ -35,6 +35,11 @@ const AttendanceSchema = new Schema<IAttendance>({
   company: { type: Schema.Types.ObjectId, ref: 'Company' },
 }, { timestamps: true });
 
+// So'rov naqshlari uchun indekslar:
+AttendanceSchema.index({ worker: 1, checkIn: -1 });  // ishchi davomati / oylik hisob
+AttendanceSchema.index({ worker: 1, checkOut: 1 });  // ochiq sessiya tekshiruvi (checkOut: null)
+AttendanceSchema.index({ company: 1, checkIn: -1 }); // admin davomat paneli
+
 const Attendance = mongoose.models.Attendance || mongoose.model<IAttendance>('Attendance', AttendanceSchema);
 
 export default Attendance;

@@ -1,12 +1,26 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import OfficeLocation from '@/models/OfficeLocation';
+import Worker from '@/models/Worker';
+import { getWorkerIdFromRequest } from '@/lib/mobileAuth';
 
 // GET /api/mobile/office-location — mobil ilova uchun ofis hududi
-export async function GET() {
+// Ishchining O'Z korxonasi ofisini qaytaradi (ko'p-ijara aralashmasligi uchun).
+export async function GET(req: NextRequest) {
   try {
+    const workerId = await getWorkerIdFromRequest(req);
+    if (!workerId) {
+      return NextResponse.json(
+        { success: false, message: 'Avtorizatsiya talab qilinadi' },
+        { status: 401 }
+      );
+    }
+
     await connectDB();
-    const office = await OfficeLocation.findOne();
+    const worker = await Worker.findById(workerId).select('company');
+    const office = worker?.company
+      ? await OfficeLocation.findOne({ company: worker.company })
+      : null;
 
     if (!office) {
       return NextResponse.json(

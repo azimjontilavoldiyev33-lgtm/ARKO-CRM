@@ -4,11 +4,23 @@ import Task from '@/models/Task';
 import Worker from '@/models/Worker';
 import Order from '@/models/Order';
 import { notifyAll } from '@/lib/sse';
+import { reportError } from '@/lib/reportError';
 
 // populate('worker'|'order') uchun modellar ro'yxatdan o'tishi shart
 void [Worker, Order];
 
-export async function GET() {
+export async function GET(req: Request) {
+  // Faqat sozlangan cron chaqiruvchisi kira oladi.
+  // Vercel Cron "Authorization: Bearer <CRON_SECRET>" header yuboradi.
+  const secret = process.env.CRON_SECRET;
+  if (!secret) {
+    return NextResponse.json({ error: 'CRON_SECRET sozlanmagan' }, { status: 500 });
+  }
+  const provided = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '').trim();
+  if (provided !== secret) {
+    return NextResponse.json({ error: 'Ruxsat yo\'q' }, { status: 401 });
+  }
+
   try {
     await connectDB();
 
@@ -34,7 +46,7 @@ export async function GET() {
     });
 
   } catch (err) {
-    console.error('Cron xatosi:', err);
+    reportError('GET /api/cron', err);
     return NextResponse.json({ error: 'Xato yuz berdi' }, { status: 500 });
   }
 }
