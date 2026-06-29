@@ -200,6 +200,27 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
               </Link>
             );
           })}
+
+          {/* Superadmin paneli — faqat superadmin ko'radi */}
+          {me?.role === 'superadmin' && (
+            <Link
+              href="/superadmin"
+              style={{
+                display: 'flex', alignItems: 'center', gap: '12px',
+                padding: '11px 14px', borderRadius: '10px', marginTop: '8px',
+                textDecoration: 'none',
+                background: pathname.startsWith('/superadmin') ? '#1e2235' : 'transparent',
+                color: pathname.startsWith('/superadmin') ? '#e8e8e8' : '#888',
+                fontWeight: pathname.startsWith('/superadmin') ? 600 : 400,
+                fontSize: '14px',
+                borderLeft: pathname.startsWith('/superadmin') ? '3px solid #f0c040' : '3px solid transparent',
+                transition: 'all 0.15s',
+              }}
+            >
+              <span style={{ fontSize: '16px' }}>🛡️</span>
+              Korxonalar (SA)
+            </Link>
+          )}
         </nav>
 
         {/* Footer */}
