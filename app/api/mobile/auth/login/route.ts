@@ -2,16 +2,36 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Worker from '@/models/Worker';
 import { signWorkerToken } from '@/lib/mobileAuth';
+import { rateLimit, clientIp } from '@/lib/rateLimit';
+import { reportError } from '@/lib/reportError';
 
-// POST /api/mobile/auth/login — ishchi telefon raqami bilan kiradi
+// POST /api/mobile/auth/login — ishchi telefon raqami + kirish kodi bilan kiradi
 export async function POST(req: NextRequest) {
   try {
+    // Brute-force himoyasi: IP bo'yicha 15 daqiqada 10 urinish
+    const limit = await rateLimit(`mlogin:${clientIp(req)}`, 10, 15 * 60 * 1000);
+    if (!limit.ok) {
+      return NextResponse.json(
+        { success: false, message: `Juda ko'p urinish. ${limit.retryAfter} soniyadan keyin qayta urinib ko'ring.` },
+        { status: 429 }
+      );
+    }
+
     await connectDB();
-    const { phoneNumber, deviceId } = await req.json();
+    const { phoneNumber, code, deviceId } = await req.json();
 
     if (!phoneNumber) {
       return NextResponse.json(
         { success: false, message: 'Telefon raqam majburiy' },
+        { status: 400 }
+      );
+    }
+
+    // Kirish kodi — adminda generatsiya qilinadigan 4 xonali maxfiy kod.
+    // Telefon raqamini bilgan begona hisobni egallab olmasin (parol o'rnida).
+    if (!code || !/^\d{4}$/.test(String(code))) {
+      return NextResponse.json(
+        { success: false, message: '4 xonali kirish kodini kiriting' },
         { status: 400 }
       );
     }
@@ -30,12 +50,15 @@ export async function POST(req: NextRequest) {
 
     const worker = await Worker.findOne({
       phoneNumber: { $regex: last9 + '$' },
+      code: String(code),
     });
 
+    // Telefon yoki kod noto'g'ri — qaysi biri xato ekanini OSHKOR qilmaymiz
+    // (hisob enumeratsiyasi oldini olish).
     if (!worker) {
       return NextResponse.json(
-        { success: false, message: 'Ishchi topilmadi' },
-        { status: 404 }
+        { success: false, message: "Telefon raqam yoki kod noto'g'ri" },
+        { status: 401 }
       );
     }
 
@@ -60,7 +83,8 @@ export async function POST(req: NextRequest) {
     const token = await signWorkerToken(String(worker._id));
 
     return NextResponse.json({ success: true, token, worker });
-  } catch {
+  } catch (err) {
+    reportError('POST /api/mobile/auth/login', err);
     return NextResponse.json(
       { success: false, message: 'Xatolik yuz berdi' },
       { status: 500 }

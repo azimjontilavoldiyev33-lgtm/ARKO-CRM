@@ -4,6 +4,7 @@ import Attendance from '@/models/Attendance';
 import OfficeLocation from '@/models/OfficeLocation';
 import Worker from '@/models/Worker';
 import { getWorkerIdFromRequest } from '@/lib/mobileAuth';
+import { sendCompanyTelegram, escapeHtml } from '@/lib/telegram';
 import { distanceInMeters } from '@/lib/distance';
 import { notifyAll } from '@/lib/sse';
 
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
 
     // Qurilma tekshiruvi — biriktirilgan qurilmadan boshqasidan ketishni bloklaymiz
     const reqDeviceId = req.headers.get('x-device-id') || '';
-    const worker = await Worker.findById(workerId).select('deviceId company');
+    const worker = await Worker.findById(workerId).select('deviceId company fullName');
     if (worker?.deviceId && worker.deviceId !== reqDeviceId) {
       return NextResponse.json(
         { success: false, message: 'Bu qurilma hisobingizga biriktirilmagan. Administrator bilan bog\'laning.' },
@@ -82,6 +83,10 @@ export async function POST(req: NextRequest) {
 
     notifyAll();
 
+    // Telegram ogohlantirish — ishchi ketdi
+    const t = new Date(attendance.checkOut).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Tashkent' });
+    void sendCompanyTelegram(companyId, `🚪 <b>${escapeHtml(worker?.fullName || 'Ishchi')}</b> ish joyidan ketdi\n🕐 ${t}`);
+
     return NextResponse.json({
       success: true,
       data: {
@@ -91,7 +96,6 @@ export async function POST(req: NextRequest) {
         lat,
         lng,
         distance,
-        faceVerified: true,
         timestamp: attendance.checkOut,
       },
     });

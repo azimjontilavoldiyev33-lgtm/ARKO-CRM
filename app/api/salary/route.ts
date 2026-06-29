@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import mongoose from 'mongoose';
 import Attendance from '@/models/Attendance';
+import Worker from '@/models/Worker';
+import { getAuth } from '@/lib/auth';
 
 const WORK_START = 9;  // 09:00
 const WORK_END   = 18; // 18:00
@@ -9,6 +11,9 @@ const LUNCH      = 1;  // 1 soat obед
 const WORK_HOURS = WORK_END - WORK_START - LUNCH; // 8 soat
 
 export async function GET(req: Request) {
+  const auth = await getAuth();
+  if (!auth?.companyId) return NextResponse.json({ error: 'Avtorizatsiya talab qilinadi' }, { status: 401 });
+
   const { searchParams } = new URL(req.url);
   const workerId = searchParams.get('workerId');
   const month    = parseInt(searchParams.get('month') || '');
@@ -19,7 +24,15 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Parametrlar yetishmayapti' }, { status: 400 });
   }
 
+  if (!mongoose.Types.ObjectId.isValid(workerId)) {
+    return NextResponse.json({ error: "Noto'g'ri ishchi" }, { status: 400 });
+  }
+
   await connectDB();
+
+  // Ishchi shu adminning korxonasiga tegishli bo'lishi shart (cross-tenant himoyasi)
+  const worker = await Worker.findOne({ _id: workerId, company: auth.companyId }).select('_id');
+  if (!worker) return NextResponse.json({ error: 'Ishchi topilmadi' }, { status: 404 });
 
   // Oy boshи va oxiri
   const from = new Date(year, month - 1, 1);

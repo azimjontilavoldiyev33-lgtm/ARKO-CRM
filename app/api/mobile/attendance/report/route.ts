@@ -40,7 +40,6 @@ export async function GET(req: NextRequest) {
           type: 'check-in',
           lat: (r.location as { latitude?: number })?.latitude ?? 0,
           lng: (r.location as { longitude?: number })?.longitude ?? 0,
-          faceVerified: true,
           timestamp: r.checkIn,
         });
       }
@@ -53,7 +52,6 @@ export async function GET(req: NextRequest) {
           type: 'check-out',
           lat: co?.latitude ?? (r.location as { latitude?: number })?.latitude ?? 0,
           lng: co?.longitude ?? (r.location as { longitude?: number })?.longitude ?? 0,
-          faceVerified: true,
           timestamp: r.checkOut,
         });
       }

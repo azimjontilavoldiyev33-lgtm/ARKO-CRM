@@ -10,7 +10,8 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!form.username || !form.password) return;
     setLoading(true);
     setError('');
@@ -63,51 +64,55 @@ export default function LoginPage() {
         </div>
 
         {/* Form karta */}
-        <div style={{ position: 'relative', background: '#14161f', borderRadius: '20px', padding: '32px', border: '1px solid #23263a', boxShadow: '0 20px 50px rgba(0,0,0,0.4)' }}>
+        <form onSubmit={handleSubmit} style={{ position: 'relative', background: '#14161f', borderRadius: '20px', padding: '32px', border: '1px solid #23263a', boxShadow: '0 20px 50px rgba(0,0,0,0.4)' }}>
           {/* Yuqori aksent chizig'i */}
           <div aria-hidden style={{ position: 'absolute', top: 0, left: '24px', right: '24px', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(240,192,64,0.5), transparent)' }} />
 
           {error && (
-            <div style={{ background: '#2a1414', border: '1px solid #4a1a1a', borderRadius: '10px', padding: '12px 16px', marginBottom: '20px', color: '#f87171', fontSize: '13px' }}>
+            <div role="alert" style={{ background: '#2a1414', border: '1px solid #4a1a1a', borderRadius: '10px', padding: '12px 16px', marginBottom: '20px', color: '#f87171', fontSize: '13px' }}>
               ❌ {error}
             </div>
           )}
 
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', color: '#888', fontSize: '12px', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '8px' }}>Login</label>
+            <label htmlFor="login-username" style={{ display: 'block', color: '#888', fontSize: '12px', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '8px' }}>Login</label>
             <input
+              id="login-username"
+              name="username"
               type="text"
+              autoComplete="username"
               placeholder="admin"
               className="tabel-input"
               value={form.username}
               onChange={e => setForm(prev => ({ ...prev, username: e.target.value }))}
-              onKeyDown={e => e.key === 'Enter' && handleSubmit()}
               style={{ width: '100%', background: '#0b0d13', border: '1px solid #2a2d3a', borderRadius: '10px', padding: '13px 16px', color: '#e8e8e8', fontSize: '14px', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.15s, box-shadow 0.15s' }}
             />
           </div>
 
           <div style={{ marginBottom: '24px' }}>
-            <label style={{ display: 'block', color: '#888', fontSize: '12px', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '8px' }}>Parol</label>
+            <label htmlFor="login-password" style={{ display: 'block', color: '#888', fontSize: '12px', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '8px' }}>Parol</label>
             <input
+              id="login-password"
+              name="password"
               type="password"
+              autoComplete="current-password"
               placeholder="••••••••"
               className="tabel-input"
               value={form.password}
               onChange={e => setForm(prev => ({ ...prev, password: e.target.value }))}
-              onKeyDown={e => e.key === 'Enter' && handleSubmit()}
               style={{ width: '100%', background: '#0b0d13', border: '1px solid #2a2d3a', borderRadius: '10px', padding: '13px 16px', color: '#e8e8e8', fontSize: '14px', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.15s, box-shadow 0.15s' }}
             />
           </div>
 
           <button
-            onClick={handleSubmit}
+            type="submit"
             disabled={loading}
             className="tabel-btn"
             style={{ width: '100%', background: 'linear-gradient(135deg, #f5cf5a 0%, #e6b733 100%)', color: '#0f1117', border: 'none', borderRadius: '10px', padding: '14px', fontFamily: "var(--font-display)", fontWeight: 700, fontSize: '15px', cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.7 : 1, transition: 'transform 0.12s, box-shadow 0.15s' }}
           >
             {loading ? 'Kirilmoqda...' : 'Kirish →'}
           </button>
-        </div>
+        </form>
 
         {/* Footer */}
         <p style={{ textAlign: 'center', color: '#3a3d4a', fontSize: '12px', marginTop: '24px' }}>

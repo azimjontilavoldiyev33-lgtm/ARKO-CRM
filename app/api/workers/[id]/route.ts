@@ -2,19 +2,26 @@ import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Worker from '@/models/Worker';
 import { getAuth } from '@/lib/auth';
+import { workerUpdateSchema, parseBody } from '@/lib/validation';
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   await connectDB();
 
-  // code orqali qidirish (4 xonali raqam bo'lsa)
+  // 4 xonali kod orqali qidirish — bu yo'l PUBLIK monitor kioski uchun.
+  // Maxfiy maydonlar (oylik, telefon, deviceId, telegram) QAYTARILMAYDI;
+  // kioskka faqat ism/lavozim/kod kerak. Shu bilan kod brute-force qilinsa ham
+  // maosh/telefon sizib chiqmaydi.
   if (/^\d{4}$/.test(id)) {
-    const worker = await Worker.findOne({ code: id });
+    const worker = await Worker.findOne({ code: id }).select('fullName position code company');
     if (!worker) return NextResponse.json({ error: 'Ishchi topilmadi' }, { status: 404 });
     return NextResponse.json(worker);
   }
 
-  const worker = await Worker.findById(id);
+  // ObjectId orqali to'liq ma'lumot — faqat avtorizatsiyalangan admin, o'z korxonasi.
+  const auth = await getAuth();
+  if (!auth?.companyId) return NextResponse.json({ error: 'Avtorizatsiya talab qilinadi' }, { status: 401 });
+  const worker = await Worker.findOne({ _id: id, company: auth.companyId });
   if (!worker) return NextResponse.json({ error: 'Ishchi topilmadi' }, { status: 404 });
   return NextResponse.json(worker);
 }
@@ -33,23 +40,22 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!auth?.companyId) return NextResponse.json({ error: 'Avtorizatsiya talab qilinadi' }, { status: 401 });
   const { id } = await params;
   await connectDB();
-  const body = await req.json();
-  // Kirish kodi avtomatik — qo'lda o'zgartirishga ruxsat yo'q
-  delete body.code;
+  const parsed = parseBody(workerUpdateSchema, await req.json().catch(() => null));
+  if (!parsed.ok) return parsed.response;
+  const { resetDevice, ...fields } = parsed.data;
 
-  // Qurilma biriktirishni faqat UZISH mumkin (ixtiyoriy deviceId qo'yishga yo'l qo'ymaymiz).
-  // { resetDevice: true } yuborilsa — biriktirish bekor qilinadi, ishchi yangi telefondan kira oladi.
-  const resetDevice = body.resetDevice === true;
-  delete body.resetDevice;
-  delete body.deviceId;
-  delete body.deviceBoundAt;
-  if (resetDevice) {
-    body.deviceId = null;
-    body.deviceBoundAt = null;
+  // Schema faqat ruxsat etilgan maydonlarni o'tkazadi (body.company/code/deviceId qabul qilinmaydi)
+  const update: Record<string, unknown> = { ...fields };
+
+  // Qurilma biriktirishni faqat UZISH mumkin — { resetDevice: true } yuborilsa
+  // biriktirish bekor qilinadi, ishchi yangi telefondan kira oladi.
+  if (resetDevice === true) {
+    update.deviceId = null;
+    update.deviceBoundAt = null;
   }
 
   try {
-    const worker = await Worker.findOneAndUpdate({ _id: id, company: auth.companyId }, body, { new: true });
+    const worker = await Worker.findOneAndUpdate({ _id: id, company: auth.companyId }, update, { new: true });
     return NextResponse.json(worker);
   } catch (err) {
     if (err && typeof err === 'object' && 'code' in err && err.code === 11000) {

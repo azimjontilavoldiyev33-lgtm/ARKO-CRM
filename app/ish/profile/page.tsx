@@ -25,21 +25,41 @@ type Profile = {
   };
 };
 
+type Salary = {
+  salary: number;
+  workDays: number;
+  totalWorkDays: number;
+  overtimeHours: number;
+  baseEarned: number;
+  overtimePay: number;
+  points: number;
+  pointBonus: number;
+  totalSalary: number;
+};
+
+const som = (n: number) => n.toLocaleString('uz-UZ') + " so'm";
+
 export default function ProfilePage() {
   const router = useRouter();
   const [data, setData] = useState<Profile | null>(null);
+  const [salary, setSalary] = useState<Salary | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     try {
-      const res = await apiFetch('/api/mobile/me');
-      if (res.status === 401) {
+      const [meRes, salRes] = await Promise.all([
+        apiFetch('/api/mobile/me'),
+        apiFetch('/api/mobile/salary'),
+      ]);
+      if (meRes.status === 401) {
         clearSession();
         router.replace('/ish/login');
         return;
       }
-      const json = await res.json();
-      if (json?.success) setData(json as Profile);
+      const meJson = await meRes.json();
+      if (meJson?.success) setData(meJson as Profile);
+      const salJson = await salRes.json();
+      if (salJson?.success) setSalary(salJson as Salary);
     } catch {
       /* tarmoq yo'q */
     } finally {
@@ -96,6 +116,33 @@ export default function ProfilePage() {
               <Stat value={data!.stats.avgRating != null ? `⭐ ${data!.stats.avgRating}` : '—'} label="O'rtacha baho" />
             </div>
 
+            {/* Oylik (shu oy) */}
+            {salary && (
+              <section style={{ marginTop: 22 }}>
+                <h2 style={S.sectionTitle}>Oylik · shu oy</h2>
+                <div style={S.salaryCard}>
+                  <div style={S.salaryAccent} />
+                  <p style={S.salaryLabel}>Hisoblangan summa</p>
+                  <p style={S.salaryTotal}>{som(salary.totalSalary)}</p>
+                  <div style={S.salaryRows}>
+                    <SalRow label={`Asosiy (${salary.workDays}/${salary.totalWorkDays} kun)`} value={som(salary.baseEarned)} />
+                    {salary.overtimePay > 0 && <SalRow label={`Qo'shimcha ish (${salary.overtimeHours} soat)`} value={`+${som(salary.overtimePay)}`} good />}
+                    {salary.pointBonus !== 0 && (
+                      <SalRow
+                        label={`Ball bonusi (${salary.points > 0 ? '+' : ''}${salary.points} ball)`}
+                        value={`${salary.pointBonus > 0 ? '+' : ''}${som(salary.pointBonus)}`}
+                        good={salary.pointBonus > 0}
+                        bad={salary.pointBonus < 0}
+                      />
+                    )}
+                  </div>
+                  {salary.salary > 0 && (
+                    <p style={S.salaryNote}>Belgilangan oylik: {som(salary.salary)}</p>
+                  )}
+                </div>
+              </section>
+            )}
+
             {/* Ma'lumotlar */}
             <section style={{ marginTop: 22 }}>
               <h2 style={S.sectionTitle}>Ma&apos;lumotlar</h2>
@@ -130,6 +177,15 @@ function Stat({ value, label }: { value: string | number; label: string }) {
     <div style={S.statCard}>
       <p style={S.statValue}>{value}</p>
       <p style={S.statLabel}>{label}</p>
+    </div>
+  );
+}
+
+function SalRow({ label, value, good, bad }: { label: string; value: string; good?: boolean; bad?: boolean }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0' }}>
+      <span style={{ color: '#9aa0ad', fontSize: 13 }}>{label}</span>
+      <span style={{ color: good ? '#4ade80' : bad ? '#f87171' : '#e8e8e8', fontSize: 14, fontWeight: 600 }}>{value}</span>
     </div>
   );
 }
@@ -185,6 +241,12 @@ const S: Record<string, React.CSSProperties> = {
   statLabel: { color: '#7a7d8a', fontSize: 12, margin: 0 },
   sectionTitle: { fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 700, color: '#cfd2dc', margin: '0 0 12px' },
   card: { background: '#14161f', border: '1px solid #23263a', borderRadius: 16, padding: '4px 16px' },
+  salaryCard: { position: 'relative', background: '#14161f', border: '1px solid #23263a', borderRadius: 18, padding: '18px 18px 16px', overflow: 'hidden' },
+  salaryAccent: { position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg, #f5cf5a, #e0b030)' },
+  salaryLabel: { color: '#7a7d8a', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1, margin: '4px 0 4px' },
+  salaryTotal: { fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: '#f0c040', margin: '0 0 12px' },
+  salaryRows: { borderTop: '1px solid #1d2030', paddingTop: 6 },
+  salaryNote: { color: '#5a5d6a', fontSize: 12, margin: '10px 0 0', paddingTop: 10, borderTop: '1px solid #1d2030' },
   row: { display: 'flex', alignItems: 'center', gap: 12, padding: '13px 0' },
   logoutBtn: {
     width: '100%', marginTop: 12, background: '#1a0f0f', border: '1px solid #4a1a1a', color: '#f87171',
